@@ -1,20 +1,20 @@
-import { defineConfig } from 'vite'
-import path from 'path'
-import vue from '@vitejs/plugin-vue'
-import monkey, { cdn, util } from 'vite-plugin-monkey'
-import AutoImport from 'unplugin-auto-import/vite'
-import Components from 'unplugin-vue-components/vite'
-import IconsResolver from 'unplugin-icons/resolver'
-import Icons from 'unplugin-icons/vite'
-import { ElementPlusResolver } from 'unplugin-vue-components/resolvers'
+import { defineConfig } from "vite";
+import path from "path";
+import vue from "@vitejs/plugin-vue";
+import monkey, { cdn, util } from "vite-plugin-monkey";
+import AutoImport from "unplugin-auto-import/vite";
+import Components from "unplugin-vue-components/vite";
+import IconsResolver from "unplugin-icons/resolver";
+import Icons from "unplugin-icons/vite";
+import { ElementPlusResolver } from "unplugin-vue-components/resolvers";
 
-const pathSrc = path.resolve(__dirname, 'src')
+const pathSrc = path.resolve(__dirname, "src");
 
 // https://vitejs.dev/config/
 export default defineConfig({
   resolve: {
     alias: {
-      '@': pathSrc,
+      "@": pathSrc,
     },
   },
   plugins: [
@@ -22,7 +22,7 @@ export default defineConfig({
     AutoImport({
       // Auto import functions from Vue, e.g. ref, reactive, toRef...
       // 自动导入 Vue 相关函数，如：ref, reactive, toRef 等
-      imports: ['vue'],
+      imports: ["vue"],
 
       // Auto import functions from Element Plus, e.g. ElMessage, ElMessageBox... (with style)
       // 自动导入 Element Plus 相关函数，如：ElMessage, ElMessageBox... (带样式)
@@ -32,11 +32,11 @@ export default defineConfig({
         // Auto import icon components
         // 自动导入图标组件
         IconsResolver({
-          prefix: 'Icon',
+          prefix: "Icon",
         }),
       ],
 
-      dts: path.resolve(pathSrc, 'auto-imports.d.ts'),
+      dts: path.resolve(pathSrc, "auto-imports.d.ts"),
     }),
 
     Components({
@@ -44,38 +44,40 @@ export default defineConfig({
         // Auto register icon components
         // 自动注册图标组件
         IconsResolver({
-          enabledCollections: ['ep'],
+          enabledCollections: ["ep"],
         }),
         // Auto register Element Plus components
         // 自动导入 Element Plus 组件
         ElementPlusResolver(),
       ],
 
-      dts: path.resolve(pathSrc, 'components.d.ts'),
+      dts: path.resolve(pathSrc, "components.d.ts"),
     }),
 
     Icons({
       autoInstall: true,
     }),
     monkey({
-      entry: 'src/main.js',
+      entry: "src/main.js",
       userscript: {
-        icon: 'https://vitejs.dev/logo.svg',
-        namespace: 'npm/vite-plugin-monkey',
+        icon: "https://vitejs.dev/logo.svg",
+        namespace: "npm/vite-plugin-monkey",
         match: [
-          'http*://www.xiaohongshu.com/*',
-          'http*://xhslink.com/*',
-          'http*://www.xiaohongshu.com/explore*',
-          'http*://www.xiaohongshu.com/user/profile/*',
-          'http*://www.xiaohongshu.com/search_result*',
+          "http*://www.xiaohongshu.com/*",
+          "http*://xhslink.com/*",
+          "http*://www.xiaohongshu.com/explore*",
+          "http*://www.xiaohongshu.com/user/profile/*",
+          "http*://www.xiaohongshu.com/search_result*",
         ],
       },
       build: {
         externalGlobals: {
-          vue: cdn.jsdelivr('Vue', 'dist/vue.global.prod.js').concat(util.dataUrl(';window.Vue=Vue;')),
-          'element-plus': cdn.jsdelivr('ElementPlus', 'dist/index.full.min.js'),
+          vue: cdn
+            .jsdelivr("Vue", "dist/vue.global.prod.js")
+            .concat(util.dataUrl(";window.Vue=Vue;")),
+          "element-plus": cdn.jsdelivr("ElementPlus", "dist/index.full.min.js"),
         },
       },
     }),
   ],
-})
+});
