@@ -12,14 +12,18 @@ let downloadType = ref("collage"); // collage拼图 origin原图
 const maxImgLength = 4; // 拼图数量
 let minHeight = 10000,
   minWidth = 10000,
-  scaleValue = 0.3; // 图片缩放比例
+  scaleValue = 0.3, // 图片缩放比例
+  scaleAddSize = 50, // 图标放大尺寸
+  initSmileWidth = 150, // 马赛克初始高度
+  initSmileHeight = 150;
 let pageInfo = {};
 const allNotes = []; // 记录所有帖子
 let allInputText = {}; // 记录所有输入的文案
-let allImg = []; // 记录当前帖子所有添加的图片
+let allImg = {}; // 记录当前帖子所有添加的图片
 let activeCityName = "";
 let onloadImageLength = 0; // 已经加载的图片数量
 let copedNoteIds = new Set(); // 数据库保存的小红书IDs
+let coverImgIndex = 0; // 封面索引
 
 // 监听滚动，重新渲染样式
 window.addEventListener("scroll", function () {
@@ -34,6 +38,7 @@ getXHSIds();
 
 // 加载要添加的图片
 const overlayImage = new Image();
+overlayImage.crossOrigin = "Anonymous";
 overlayImage.src = addImg;
 
 // 绘制图片
@@ -47,9 +52,23 @@ function createCanvasImg(id) {
   });
 
   function doRenderImg(item) {
-    // 在点击的位置绘制图片
-    ctx.drawImage(overlayImage, item.x, item.y, item.width, item.height);
+    // NOTE: 以点击的中心点绘制，但是存储和之前所有计算的点位都是左上角，只是最后绘制的时候偏移一下，这样不会影响计算逻辑，只是展示的时候偏移
+    ctx.drawImage(
+      overlayImage,
+      item.x - item.width / 2,
+      item.y - item.height / 2,
+      item.width,
+      item.height
+    );
   }
+}
+function clearEvents() {
+  // 清除图片监听事件
+  const canvasEls = document.querySelectorAll(".canvas canvas");
+  canvasEls.forEach((item) => {
+    item.removeEventListener("click", listenEventLeftClick);
+    item.removeEventListener("contextmenu", listenEventRightClick);
+  });
 }
 // 1. canvas上添加点击事件
 function addImgToCanvasEvent(id) {
@@ -71,7 +90,6 @@ function listenEventLeftClick(event) {
   const x = event.clientX;
   const y = event.clientY;
   const id = event.target.id;
-  console.log(id, "点击");
 
   // 添加到图片管理器
   imgManage(true, id, x, y);
@@ -90,28 +108,15 @@ function imgManage(type, id, x, y) {
     return false;
   }
 
-  // 判断是封面还是拼图，或者原图
-  let width = 200,
-    height = 200;
-  if (downloadType.value === "collage") {
-    if (id !== "cover-canvas") {
-      width = 100;
-      height = 100;
-    }
-  }
-
   // 获取鼠标相对于canvas的坐标
   const canvas = document.getElementById(id);
   const rect = canvas.getBoundingClientRect();
-  console.log(rect, "rect");
-  x = x - Math.abs(rect.left);
-  y = y - Math.abs(rect.top);
-
-  // console.log(x, y, canvasX, canvasY);
-
-  // 根据缩放比例调整坐标
-  // const adjustedX = canvasX / scaleValue;
-  // const adjustedY = canvasY / scaleValue;
+  // 应该使用width而不是clientWidth
+  const scale = canvas.width / canvas.clientWidth;
+  x = x - rect.left;
+  y = y - rect.top;
+  x = x * scale;
+  y = y * scale;
 
   // 添加
   if (type) {
@@ -121,8 +126,8 @@ function imgManage(type, id, x, y) {
     }
 
     // 如果已经存在，则放大
-    let isExist = false,
-      scaleAddSize = 20;
+    let isExist = false;
+
     allImg[id].forEach((item) => {
       if (
         x <= item.x + item.width / 2 &&
@@ -136,7 +141,7 @@ function imgManage(type, id, x, y) {
       }
     });
     if (!isExist) {
-      allImg[id].push({ x, y, width, height });
+      allImg[id].push({ x, y, width: initSmileWidth, height: initSmileHeight });
     }
   } else {
     if (allImg.hasOwnProperty(id) && allImg[id].length > 0) {
@@ -150,7 +155,6 @@ function imgManage(type, id, x, y) {
       });
     }
   }
-  console.log(allImg, "allImg");
 
   // 防抖
   const debounceDoRender = debounce(function () {
@@ -266,15 +270,10 @@ function changeImgStyle() {
   const leftContentEl = document.querySelector(
     ".dialog-content > .left-content"
   );
-  const coverCanvasEl = document.querySelector("#cover-canvas");
   const canvasEls = document.querySelectorAll(".canvas canvas");
   const canvasWidth = leftContentEl?.clientWidth - 200;
   scaleValue = canvasWidth / (minWidth * 2);
 
-  if (downloadType.value === "collage") {
-    coverCanvasEl.style.width = canvasWidth + "px";
-    coverCanvasEl.style.height = scaleValue * minHeight * 2 + "px";
-  }
   canvasEls.forEach((item) => {
     item.style.width = canvasWidth + "px";
     item.style.height = scaleValue * minHeight * 2 + "px";
@@ -295,8 +294,6 @@ function changeOriginImgStyle(i) {
   scaleValue = canvasWidth / (minWidth * 2);
   canvasEls[i].style.width = canvasWidth + "px";
   canvasEls[i].style.height = scaleValue * minHeight * 2 + "px";
-
-  console.log(minHeight);
 
   // 设置右侧操作按钮宽度
   const addTextEls = document.querySelectorAll(".add-text");
@@ -330,7 +327,7 @@ function textManage(type, id, text = null) {
     if (allInputText.hasOwnProperty(id) && allInputText[id].length > 0) {
       allInputText[id].pop();
     }
-    if (allInputText[id].length === 0) {
+    if (allInputText.hasOwnProperty(id) && allInputText[id].length === 0) {
       delete allInputText[id];
     }
   }
@@ -388,16 +385,10 @@ function createCanvasText(id) {
   } else {
     canvas = document.getElementById(`canvas${id}`);
   }
-  // 根据拼图还是原图获取文字的基准位置
-  let textBaseX = 0,
-    textBaseY = 0;
-  if (downloadType.value === "collage") {
-    textBaseX = minWidth;
-    textBaseY = minHeight;
-  } else {
-    textBaseX = canvas?.clientWidth / 2;
-    textBaseY = canvas?.clientHeight / 2;
-  }
+  // 根据获取文字的基准位置
+  let textBaseX = canvas?.width / 2;
+  let textBaseY = canvas?.height / 2;
+
   // 获取canvas上下文对象，可理解为：使用画布的权限
   const ctx = canvas.getContext("2d");
   //先设置文字字体和大小, 必须先设置，才可以读取文字的宽高
@@ -483,7 +474,11 @@ function createCanvasText(id) {
 function getCollage(reRender = false) {
   downloadType.value = "collage";
   getNoteContent();
-  if (!reRender) allInputText = {};
+  if (!reRender) {
+    allInputText = {};
+    allImg = {};
+    coverImgIndex = 0;
+  }
   // 1.对图片数量进行随机增加()
   let imageListLength = pageInfo?.image_list?.length || 0;
 
@@ -555,7 +550,11 @@ function getCollage(reRender = false) {
 function getOriginImg(reRender = false) {
   downloadType.value = "origin";
   getNoteContent();
-  if (!reRender) allInputText = {};
+  if (!reRender) {
+    allInputText = {};
+    allImg = {};
+    coverImgIndex = 0;
+  }
   // 1.获取canvas数量
   let imageListLength = pageInfo?.image_list?.length || 0;
   pageInfo.canvasLength = imageListLength;
@@ -591,19 +590,20 @@ function createCover(changeIndexImg = false) {
   const canvas = document.getElementById("cover-canvas");
   const ctx = canvas.getContext("2d");
 
-  let originImages = pageInfo?.image_list[0].url_default ?? ""; // 原始图片
-
   if (changeIndexImg) {
     let randomIndex = Math.floor(Math.random() * pageInfo?.image_list?.length);
     randomIndex = randomIndex + 1;
-    originImages = pageInfo?.image_list[randomIndex].url_default ?? ""; // 原始图片
+    coverImgIndex = randomIndex;
   }
+
+  let originImages = pageInfo?.image_list[coverImgIndex].url_default ?? ""; // 原始图片
 
   let image = new Image();
   image.crossOrigin = "Anonymous";
   image.src = originImages;
   image.onload = function () {
     if (!changeIndexImg) onloadImageLength++;
+    // 此处仍然使用原本的宽度，是为了图片的分辨率，生成图片之后再缩小
     canvas.width = minWidth * 2;
     canvas.height = minHeight * 2;
     ctx.drawImage(image, 0, 0, minWidth * 2, minHeight * 2);
@@ -621,9 +621,15 @@ function createOriginImgs(index, changeIndexImg = false) {
   image.crossOrigin = "Anonymous";
   if (changeIndexImg) {
     let randomIndex = Math.floor(Math.random() * pageInfo?.image_list?.length);
-    index = randomIndex + 1;
+    coverImgIndex = randomIndex + 1;
   }
-  image.src = originImages[index].url_default;
+
+  // 封面使用外部变量
+  if (index === 0) {
+    image.src = originImages[coverImgIndex].url_default;
+  } else {
+    image.src = originImages[index].url_default;
+  }
 
   image.onload = function () {
     if (!changeIndexImg) onloadImageLength++;
@@ -694,13 +700,6 @@ function handDownload() {
     downloadCanvasAsync(canvas, activeCityName + "-" + (i + 1) + ".webp");
   }
 
-  // function download(canvasEl, imgName) {
-  //   const dataURL = canvasEl.toDataURL("image/webp");
-  //   const link = document.createElement("a");
-  //   link.href = dataURL;
-  //   link.download = imgName;
-  //   link.click();
-  // }
   // 异步下载图片
   function downloadCanvasAsync(canvasEl, imgName) {
     canvasEl.toBlob(function (blob) {
@@ -822,6 +821,8 @@ function handDownloadTxt() {
 function closeDialog() {
   allInputText = {};
   dialogVisible.value = false;
+  // 清除点击监听事件
+  clearEvents();
 }
 
 // 列表样式修改，标注数量
