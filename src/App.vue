@@ -1036,6 +1036,7 @@ function getRandomElement(array) {
     title=""
     width="98%"
     :before-close="closeDialog"
+    :destroy-on-close="true"
   >
     <div class="dialog-content">
       <div class="left-content">
