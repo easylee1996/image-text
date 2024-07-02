@@ -702,23 +702,27 @@ function handDownload() {
 
   // 异步下载图片
   function downloadCanvasAsync(canvasEl, imgName) {
-    canvasEl.toBlob(function (blob) {
-      const url = URL.createObjectURL(blob);
+    canvasEl.toBlob(
+      function (blob) {
+        const url = URL.createObjectURL(blob);
 
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = imgName;
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = imgName;
 
-      document.body.appendChild(link);
+        document.body.appendChild(link);
 
-      // 由于是异步，可能需要延迟执行，以确保元素已经添加到文档中
-      setTimeout(() => {
-        link.click();
+        // 由于是异步，可能需要延迟执行，以确保元素已经添加到文档中
+        setTimeout(() => {
+          link.click();
 
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-      }, 100);
-    }, "image/webp");
+          document.body.removeChild(link);
+          URL.revokeObjectURL(url);
+        }, 100);
+      },
+      "image/webp",
+      0.8
+    );
   }
 }
 
