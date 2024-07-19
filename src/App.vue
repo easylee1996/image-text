@@ -6,9 +6,6 @@ import xhsIcon from "./assets/xhs-icon.png";
 import addImg from "./assets/smile.png";
 import { ref } from "vue";
 
-const cityLastFix = ref("周边旅游");
-const dialogVisible = ref(false);
-let downloadType = ref("collage"); // collage拼图 origin原图
 const maxImgLength = 4; // 拼图数量
 let minHeight = 10000,
   minWidth = 10000,
@@ -25,17 +22,207 @@ let onloadImageLength = 0; // 已经加载的图片数量
 let copedNoteIds = new Set(); // 数据库保存的小红书IDs
 let coverImgIndex = 0; // 封面索引
 
+// 响应式参数
+const placeAiList = ref([]);
+const showAiContentLoading = ref(false);
+const showMenu = ref(true);
+const cityLastFix = ref("周边旅游");
+const dialogVisible = ref(false);
+let downloadType = ref("collage"); // collage拼图 origin原图
+const cityList = reactive([
+  { city: "佛山", active: false },
+  { city: "湛江", active: false },
+  { city: "广州", active: false },
+  { city: "泉州", active: false },
+  { city: "温州", active: false },
+  { city: "北京", active: false },
+  { city: "南宁", active: false },
+  { city: "无锡", active: false },
+  { city: "杭州", active: false },
+  { city: "石家庄", active: false },
+  { city: "大连", active: false },
+  { city: "郑州", active: false },
+  { city: "长沙", active: false },
+  { city: "青岛", active: false },
+  { city: "沈阳", active: false },
+  { city: "哈尔滨", active: false },
+  { city: "贵阳", active: false },
+  { city: "上海", active: false },
+  { city: "苏州", active: false },
+  { city: "重庆", active: false },
+  { city: "天津", active: false },
+  { city: "济南", active: false },
+  { city: "成都", active: false },
+  { city: "宁波", active: false },
+  { city: "合肥", active: false },
+  { city: "西安", active: false },
+  { city: "南京", active: false },
+  { city: "武汉", active: false },
+  { city: "深圳", active: false },
+  { city: "东莞", active: false },
+  { city: "福州", active: false },
+]);
+
+listenScrollToChangeStyle();
 // 监听滚动，重新渲染样式
-window.addEventListener("scroll", function () {
-  changeListStyle();
-});
+function listenScrollToChangeStyle() {
+  window.addEventListener("scroll", function () {
+    changeListStyle();
+  });
+}
 
-// 监听复制事件，自动添加文案
-addCopyTextToTextManage();
-
-// 获取数据库保存的小红书IDs
+// ============================================== 列表样式和保存已采集
 getXHSIds();
+// 获取数据库中的小红书ID
+function getXHSIds() {
+  GM_xmlhttpRequest({
+    method: "POST",
+    url: "http://60.205.226.243:3003/getXHSIds",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    onload: function (response) {
+      let res = JSON.parse(response.responseText);
+      let ids = res.data.map((item) => item.xhsid);
+      copedNoteIds = new Set(ids);
+      // 监听请求
+      interceptRequest();
+    },
+  });
+}
 
+// 将ID保存到数据库
+function addXHSId() {
+  // 缓存当前ID，不再显示这个帖子
+  let currentUrl = window.location.href;
+  let currentUrlArr = currentUrl.split("/");
+  let noteId = currentUrlArr[currentUrlArr.length - 1];
+  if (noteId.includes("?")) {
+    noteId = noteId.split("?")[0];
+  }
+
+  if (copedNoteIds.has(noteId)) {
+    console.log("已保存");
+    return;
+  }
+
+  GM_xmlhttpRequest({
+    method: "POST",
+    url: "http://60.205.226.243:3003/addXHSId",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    data: JSON.stringify({
+      xhsid: noteId,
+    }),
+    onload: function (response) {
+      console.log("已保存");
+    },
+  });
+}
+
+// 列表样式修改，标注数量
+function changeListStyle() {
+  const list = document.querySelectorAll(".note-item");
+  list.forEach((item) => {
+    // 根据页面元素的id，在所有json元素中，获取当前元素的数据，
+    let id = "";
+    try {
+      id = item.children[0].children[0].href.split("/");
+      id = id[id.length - 1];
+    } catch (error) {
+      id = "";
+    }
+
+    allNotes.forEach((item1) => {
+      if (id === item1.id) {
+        if (item.querySelector("img-count") === null) {
+          const countEl = document.createElement("div");
+          item1?.note_card?.image_list.length >= 12
+            ? countEl.setAttribute("class", "img-count")
+            : countEl.setAttribute("class", "img-count img-count-default"); // 设置 class 属性
+          countEl.textContent = item1?.note_card?.image_list.length; // 使用 textContent 添加文本内容
+          item.appendChild(countEl);
+        }
+
+        if (item1?.note_card?.image_list.length >= 12) {
+          item.classList.add("need-item");
+        }
+      }
+    });
+  });
+}
+
+// 拦截请求
+function interceptRequest() {
+  const originOpen = XMLHttpRequest.prototype.open;
+  XMLHttpRequest.prototype.open = function (_, url) {
+    // 列表url拦截
+    if (url.includes("notes")) {
+      this.addEventListener("readystatechange", function () {
+        if (this.readyState === 4) {
+          const res = JSON.parse(this.responseText); // 当前 xhr 对象上定义 responseText
+          Object.defineProperty(this, "responseText", {
+            writable: true,
+          });
+          const allNeedItems = [];
+
+          res.data.items.forEach((item) => {
+            // 去除图片数量不足12
+            if (item?.note_card?.image_list?.length >= 12) {
+              // 去除已经采集过的图片
+              if (!copedNoteIds.has(item.id)) {
+                allNeedItems.push(item);
+                allNotes.push(item);
+              } else {
+                console.log(item.id + "已经采集过");
+              }
+            }
+          });
+
+          res.data.items = allNeedItems;
+          changeListStyle();
+          this.responseText = JSON.stringify(res);
+        }
+      });
+    }
+    // 详情url拦截-获取帖子详情信息
+    if (url.includes("feed")) {
+      this.addEventListener("readystatechange", function () {
+        if (this.readyState === 4) {
+          const res = JSON.parse(this.responseText); // 当前 xhr 对象上定义 responseText
+          Object.defineProperty(this, "responseText", {
+            writable: true,
+          });
+          pageInfo = {};
+          pageInfo =
+            (res &&
+              res.data &&
+              res.data.items &&
+              res.data.items[0] &&
+              res.data.items[0]?.note_card) ||
+            {};
+
+          this.responseText = JSON.stringify(res);
+        }
+      });
+    }
+    originOpen.apply(this, arguments);
+  };
+}
+
+// 关闭弹窗
+function closeDialog() {
+  allInputText = {};
+  dialogVisible.value = false;
+  showAiContentLoading.value = false;
+  showMenu.value = true;
+  placeAiList.value = [];
+  // 清除点击监听事件
+  clearEvents();
+}
+
+// ============================================== 图片绘制马赛克相关
 // 加载要添加的图片
 const overlayImage = new Image();
 overlayImage.crossOrigin = "Anonymous";
@@ -62,15 +249,16 @@ function createCanvasImg(id) {
     );
   }
 }
+
+// 清除图片监听事件
 function clearEvents() {
-  // 清除图片监听事件
   const canvasEls = document.querySelectorAll(".canvas canvas");
   canvasEls.forEach((item) => {
     item.removeEventListener("click", listenEventLeftClick);
     item.removeEventListener("contextmenu", listenEventRightClick);
   });
 }
-// 1. canvas上添加点击事件
+// canvas上添加点击事件
 function addImgToCanvasEvent(id) {
   let canvas = null;
   if (id === "cover") {
@@ -82,8 +270,6 @@ function addImgToCanvasEvent(id) {
   canvas.addEventListener("click", listenEventLeftClick);
   canvas.addEventListener("contextmenu", listenEventRightClick);
 }
-
-// TODO: 关闭窗口时解除监听，包含拼图原图
 
 // 2. 监听事件具名函数(方便解除监听,同时避免多次监听同一个元素，具名函数可以保证只监听一次)
 function listenEventLeftClick(event) {
@@ -155,83 +341,63 @@ function imgManage(type, id, x, y) {
       });
     }
   }
-
-  // 防抖
-  const debounceDoRender = debounce(function () {
-    // 重新渲染图片
-    if (downloadType.value === "collage") {
-      getCollage(true);
-    } else {
-      getOriginImg(true);
-    }
-    // 图片渲染之后再渲染添加的图标
-    let timer = setInterval(() => {
-      if (onloadImageLength >= pageInfo.canvasLength) {
-        // 图标
-        for (let id in allImg) {
-          createCanvasImg(id);
-        }
-
-        // 文案
-        for (let id in allInputText) {
-          createCanvasText(id);
-        }
-        clearInterval(timer);
-        timer = null;
-      }
-    }, 500);
-    // 暂定1秒，看是否出错，仍然不加载文字，则加长时间
-  }, 1000);
   debounceDoRender();
 }
 
+// 防抖渲染
+const debounceDoRender = debounce(function () {
+  // 重新渲染图片
+  if (downloadType.value === "collage") {
+    getCollage(true);
+  } else {
+    getOriginImg(true);
+  }
+  // 图片渲染之后再渲染添加的图标
+  let timer = setInterval(() => {
+    if (onloadImageLength >= pageInfo.canvasLength) {
+      // 图标
+      for (let id in allImg) {
+        createCanvasImg(id);
+      }
+
+      // 文案
+      for (let id in allInputText) {
+        createCanvasText(id);
+      }
+      clearInterval(timer);
+      timer = null;
+    }
+  }, 500);
+  // 暂定1秒，看是否出错，仍然不加载文字，则加长时间
+}, 1000);
+
+// ============================================== 文案管理相关
 // 获取文案
 function getNoteContent() {
   setTimeout(() => {
     const noteContent = document.querySelector(".note-content");
     const noteNeedContent = document.querySelector(".note-need-content");
     noteNeedContent.innerHTML = noteContent.innerHTML;
+
+    // 去除不需要的内容
+    // 暂时不去除标题，里面包含很多需要的信息
+    // const titleEl = element.querySelector(".title");
+    // if (titleEl) titleEl.remove();
+    const bottomContainerEl =
+      noteNeedContent.querySelector(".bottom-container");
+    if (bottomContainerEl) bottomContainerEl.remove();
+    // 去除话题
+    const descEl = noteNeedContent.querySelector(".desc");
+    const tags = descEl.querySelectorAll(".tag");
+    tags.forEach((item) => {
+      item.remove();
+    });
+    // 去除@
+    let refers = descEl.querySelectorAll(".note-content-user");
+    refers.forEach((item) => {
+      item.remove();
+    });
   }, 0);
-}
-
-// 切换首图
-function changeIndexImg() {
-  if (downloadType.value === "collage") {
-    createCover(true);
-  } else {
-    createOriginImgs(0, true);
-  }
-}
-
-// 监听复制事件，自动添加文案
-function addCopyTextToTextManage() {
-  document.addEventListener("copy", function (e) {
-    // 自动给1-4张拼图添加文字,原图暂不支持
-    if (dialogVisible.value === true && downloadType.value === "collage") {
-      let clipboardData = e.clipboardData || window.clipboardData;
-      if (!clipboardData) return;
-      let text = window.getSelection().toString();
-      if (text) {
-        e.preventDefault();
-
-        let id = "";
-        for (let key in allInputText) {
-          id = Number(key);
-        }
-        if (id === "") {
-          id = 0;
-        } else {
-          id = id + 1;
-        }
-        if (id >= 0 && id <= 3) {
-          textManage(true, id, text);
-        }
-
-        // 恢复复制
-        clipboardData.setData("text/plain", text);
-      }
-    }
-  });
 }
 
 // 复制文案
@@ -265,39 +431,36 @@ function copyArticle() {
   element.innerHTML = document.querySelector(".note-content").innerHTML;
 }
 
-// 改变图片预览时的样式 - 拼图
-function changeImgStyle() {
-  const leftContentEl = document.querySelector(
-    ".dialog-content > .left-content"
-  );
-  const canvasEls = document.querySelectorAll(".canvas canvas");
-  const canvasWidth = leftContentEl?.clientWidth - 200;
-  scaleValue = canvasWidth / (minWidth * 2);
+addCopyTextToTextManage();
+// 监听复制事件，自动添加文案
+function addCopyTextToTextManage() {
+  document.addEventListener("copy", function (e) {
+    // 自动给1-4张拼图添加文字,原图暂不支持
+    if (dialogVisible.value === true && downloadType.value === "collage") {
+      let clipboardData = e.clipboardData || window.clipboardData;
+      if (!clipboardData) return;
+      let text = window.getSelection().toString();
+      if (text) {
+        e.preventDefault();
 
-  canvasEls.forEach((item) => {
-    item.style.width = canvasWidth + "px";
-    item.style.height = scaleValue * minHeight * 2 + "px";
-  });
-  // 设置右侧操作按钮宽度
-  const addTextEls = document.querySelectorAll(".add-text");
-  addTextEls.forEach((item) => {
-    item.style.width = 200 + "px";
-  });
-}
-// 改变图片预览时的样式 - 原图
-function changeOriginImgStyle(i) {
-  const leftContentEl = document.querySelector(
-    ".dialog-content > .left-content"
-  );
-  const canvasEls = document.querySelectorAll(".canvas canvas");
-  const canvasWidth = leftContentEl?.clientWidth - 200;
-  scaleValue = canvasWidth / (minWidth * 2);
-  canvasEls[i].style.width = canvasWidth + "px";
-  canvasEls[i].style.height = scaleValue * minHeight * 2 + "px";
+        let id = "";
+        for (let key in allInputText) {
+          id = Number(key);
+        }
+        if (id === "") {
+          id = 0;
+        } else {
+          id = id + 1;
+        }
+        if (id >= 0 && id <= 3) {
+          textManage(true, id, text);
+        }
 
-  // 设置右侧操作按钮宽度
-  const addTextEls = document.querySelectorAll(".add-text");
-  addTextEls[i].style.width = 200 + "px";
+        // 恢复复制
+        clipboardData.setData("text/plain", text);
+      }
+    }
+  });
 }
 
 // 文字管理器 type:添加 删除
@@ -332,33 +495,12 @@ function textManage(type, id, text = null) {
     }
   }
 
-  // 防抖
-  const debounceDoRender = debounce(function () {
-    // 重新渲染图片
-    if (downloadType.value === "collage") {
-      getCollage(true);
-    } else {
-      getOriginImg(true);
-    }
-    // 图片渲染之后再渲染文字
-    let timer = setInterval(() => {
-      if (onloadImageLength >= pageInfo.canvasLength) {
-        // 图标
-        for (let id in allImg) {
-          createCanvasImg(id);
-        }
-
-        // 文案
-        for (let id in allInputText) {
-          createCanvasText(id);
-        }
-        clearInterval(timer);
-        timer = null;
-      }
-    }, 500);
-    // 暂定1秒，看是否出错，仍然不加载文字，则加长时间
-  }, 1000);
   debounceDoRender();
+}
+
+// 自动增加封面图文字
+function addCoverText(text) {
+  textManage(true, "cover", text);
 }
 
 // 增加文字
@@ -372,11 +514,11 @@ function createText(id) {
 
   const text = input.value;
 
-  // 添加文字到管理器
   textManage(true, id, text);
 
   input.value = "";
 }
+
 // 绘制文字
 function createCanvasText(id) {
   let canvas;
@@ -470,6 +612,7 @@ function createCanvasText(id) {
   }
 }
 
+// ============================================== 获取生成图片相关
 // 获取拼图
 function getCollage(reRender = false) {
   downloadType.value = "collage";
@@ -478,7 +621,9 @@ function getCollage(reRender = false) {
     allInputText = {};
     allImg = {};
     coverImgIndex = 0;
+    showMenu.value = false;
   }
+
   // 1.对图片数量进行随机增加()
   let imageListLength = pageInfo?.image_list?.length || 0;
 
@@ -554,7 +699,9 @@ function getOriginImg(reRender = false) {
     allInputText = {};
     allImg = {};
     coverImgIndex = 0;
+    showMenu.value = false;
   }
+
   // 1.获取canvas数量
   let imageListLength = pageInfo?.image_list?.length || 0;
   pageInfo.canvasLength = imageListLength;
@@ -687,6 +834,58 @@ function createImgs(index) {
   }
 }
 
+// 切换首图
+function changeIndexImg() {
+  if (downloadType.value === "collage") {
+    createCover(true);
+  } else {
+    createOriginImgs(0, true);
+  }
+}
+
+// 改变图片预览时的样式 - 拼图
+function changeImgStyle() {
+  const leftContentEl = document.querySelector(
+    ".dialog-content > .left-content"
+  );
+  const canvasEls = document.querySelectorAll(".canvas canvas");
+  const canvasWidth = leftContentEl?.clientWidth - 200;
+  scaleValue = canvasWidth / (minWidth * 2);
+
+  canvasEls.forEach((item) => {
+    item.style.width = canvasWidth + "px";
+    item.style.height = scaleValue * minHeight * 2 + "px";
+  });
+  // 设置右侧操作按钮宽度
+  const addTextEls = document.querySelectorAll(".add-text");
+  addTextEls.forEach((item) => {
+    item.style.width = 200 + "px";
+  });
+}
+
+// 改变图片预览时的样式 - 原图
+function changeOriginImgStyle(i) {
+  const leftContentEl = document.querySelector(
+    ".dialog-content > .left-content"
+  );
+  const canvasEls = document.querySelectorAll(".canvas canvas");
+  const canvasWidth = leftContentEl?.clientWidth - 200;
+  scaleValue = canvasWidth / (minWidth * 2);
+  canvasEls[i].style.width = canvasWidth + "px";
+  canvasEls[i].style.height = scaleValue * minHeight * 2 + "px";
+
+  // 设置右侧操作按钮宽度
+  const addTextEls = document.querySelectorAll(".add-text");
+  addTextEls[i].style.width = 200 + "px";
+}
+
+// 获取数组随机元素
+function getRandomElement(array) {
+  const randomIndex = Math.floor(Math.random() * array.length);
+  return array[randomIndex];
+}
+
+// ============================================== 下载导出相关
 // 导出图片
 function handDownload() {
   addXHSId();
@@ -726,199 +925,48 @@ function handDownload() {
   }
 }
 
-// 获取数据库中的小红书ID
-function getXHSIds() {
-  GM_xmlhttpRequest({
-    method: "POST",
-    url: "http://60.205.226.243:3003/getXHSIds",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    onload: function (response) {
-      let res = JSON.parse(response.responseText);
-      let ids = res.data.map((item) => item.xhsid);
-      copedNoteIds = new Set(ids);
-      // 监听请求
-      interceptRequest();
-    },
-  });
-}
-
-// 将ID保存到数据库
-function addXHSId() {
-  // 缓存当前ID，不再显示这个帖子
-  let currentUrl = window.location.href;
-  let currentUrlArr = currentUrl.split("/");
-  let noteId = currentUrlArr[currentUrlArr.length - 1];
-  if (noteId.includes("?")) {
-    noteId = noteId.split("?")[0];
-  }
-
-  if (copedNoteIds.has(noteId)) {
-    console.log("已保存");
-    return;
-  }
-
-  GM_xmlhttpRequest({
-    method: "POST",
-    url: "http://60.205.226.243:3003/addXHSId",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    data: JSON.stringify({
-      xhsid: noteId,
-    }),
-    onload: function (response) {
-      console.log("已保存");
-    },
-  });
-}
 // 导出txt文件
 function handDownloadTxt() {
   let element = document.querySelector(".note-need-content");
   // 去除不需要的内容
-  const titleEl = element.querySelector(".title");
-  if (titleEl) titleEl.remove();
-  const bottomContainerEl = element.querySelector(".bottom-container");
-  if (bottomContainerEl) bottomContainerEl.remove();
-  // 去除话题
-  const descEl = element.querySelector(".desc");
-  const tags = descEl.querySelectorAll(".tag");
-  tags.forEach((item) => {
-    item.remove();
-  });
-  // 去除@
-  let refers = descEl.querySelectorAll(".note-content-user");
-  refers.forEach((item) => {
-    item.remove();
-  });
+  // const titleEl = element.querySelector(".title");
+  // if (titleEl) titleEl.remove();
 
   downloadText(element.innerText);
-
-  element.innerHTML = document.querySelector(".note-content").innerHTML;
-
-  function downloadText(textToDownload) {
-    // 创建Blob对象
-    let blob = new Blob([textToDownload], { type: "text/plain;charset=utf-8" });
-
-    // 创建Object URL
-    let url = URL.createObjectURL(blob);
-
-    // 创建一个隐藏的<a>标签
-    let downloadLink = document.createElement("a");
-    downloadLink.href = url;
-    console.log(activeCityName);
-    downloadLink.download = activeCityName + ".txt"; // 下载文件的名称
-
-    // 模拟点击<a>标签来触发下载
-    document.body.appendChild(downloadLink);
-    downloadLink.click();
-
-    // 下载完成后移除<a>标签
-    document.body.removeChild(downloadLink);
-
-    // 释放Object URL
-    URL.revokeObjectURL(url);
-  }
-}
-// 关闭弹窗
-function closeDialog() {
-  allInputText = {};
-  dialogVisible.value = false;
-  // 清除点击监听事件
-  clearEvents();
 }
 
-// 列表样式修改，标注数量
-function changeListStyle() {
-  const list = document.querySelectorAll(".note-item");
-  list.forEach((item) => {
-    // 根据页面元素的id，在所有json元素中，获取当前元素的数据，
-    let id = "";
-    try {
-      id = item.children[0].children[0].href.split("/");
-      id = id[id.length - 1];
-    } catch (error) {
-      id = "";
-    }
+// 导出txt文件AI
+function handDownloadTxtAi() {
+  let element = document.querySelector(".note-need-content-ai");
 
-    allNotes.forEach((item1) => {
-      if (id === item1.id) {
-        if (item.querySelector("img-count") === null) {
-          const countEl = document.createElement("div");
-          item1?.note_card?.image_list.length >= 12
-            ? countEl.setAttribute("class", "img-count")
-            : countEl.setAttribute("class", "img-count img-count-default"); // 设置 class 属性
-          countEl.textContent = item1?.note_card?.image_list.length; // 使用 textContent 添加文本内容
-          item.appendChild(countEl);
-        }
-
-        if (item1?.note_card?.image_list.length >= 12) {
-          item.classList.add("need-item");
-        }
-      }
-    });
-  });
+  downloadText(element.innerText);
 }
 
-// 拦截请求
-function interceptRequest() {
-  const originOpen = XMLHttpRequest.prototype.open;
-  XMLHttpRequest.prototype.open = function (_, url) {
-    // 列表url拦截
-    if (url.includes("notes")) {
-      this.addEventListener("readystatechange", function () {
-        if (this.readyState === 4) {
-          const res = JSON.parse(this.responseText); // 当前 xhr 对象上定义 responseText
-          Object.defineProperty(this, "responseText", {
-            writable: true,
-          });
-          const allNeedItems = [];
+// 下载文本文件
+function downloadText(textToDownload) {
+  // 创建Blob对象
+  let blob = new Blob([textToDownload], { type: "text/plain;charset=utf-8" });
 
-          res.data.items.forEach((item) => {
-            // 去除图片数量不足12
-            if (item?.note_card?.image_list?.length >= 12) {
-              // 去除已经采集过的图片
-              if (!copedNoteIds.has(item.id)) {
-                allNeedItems.push(item);
-                allNotes.push(item);
-              } else {
-                console.log(item.id + "已经采集过");
-              }
-            }
-          });
+  // 创建Object URL
+  let url = URL.createObjectURL(blob);
 
-          res.data.items = allNeedItems;
-          changeListStyle();
-          this.responseText = JSON.stringify(res);
-        }
-      });
-    }
-    // 详情url拦截-获取帖子详情信息
-    if (url.includes("feed")) {
-      this.addEventListener("readystatechange", function () {
-        if (this.readyState === 4) {
-          const res = JSON.parse(this.responseText); // 当前 xhr 对象上定义 responseText
-          Object.defineProperty(this, "responseText", {
-            writable: true,
-          });
-          pageInfo = {};
-          pageInfo =
-            (res &&
-              res.data &&
-              res.data.items &&
-              res.data.items[0] &&
-              res.data.items[0]?.note_card) ||
-            {};
+  // 创建一个隐藏的<a>标签
+  let downloadLink = document.createElement("a");
+  downloadLink.href = url;
+  downloadLink.download = activeCityName + ".txt"; // 下载文件的名称
 
-          this.responseText = JSON.stringify(res);
-        }
-      });
-    }
-    originOpen.apply(this, arguments);
-  };
+  // 模拟点击<a>标签来触发下载
+  document.body.appendChild(downloadLink);
+  downloadLink.click();
+
+  // 下载完成后移除<a>标签
+  document.body.removeChild(downloadLink);
+
+  // 释放Object URL
+  URL.revokeObjectURL(url);
 }
 
+// ============================================== 搜索相关
 // 自定义搜索
 const handleSearch = (value) => {
   const searchEl = document.querySelector("#search-input");
@@ -962,50 +1010,84 @@ function changeReactInputValue(inputDom, newText) {
   inputDom.dispatchEvent(event);
 }
 
-// 城市列表
-const cityList = reactive([
-  { city: "佛山", active: false },
-  { city: "湛江", active: false },
-  { city: "广州", active: false },
-  { city: "泉州", active: false },
-  { city: "温州", active: false },
-  { city: "北京", active: false },
-  { city: "南宁", active: false },
-  { city: "无锡", active: false },
-  { city: "杭州", active: false },
-  { city: "石家庄", active: false },
-  { city: "大连", active: false },
-  { city: "郑州", active: false },
-  { city: "长沙", active: false },
-  { city: "青岛", active: false },
-  { city: "沈阳", active: false },
-  { city: "哈尔滨", active: false },
-  { city: "贵阳", active: false },
-  { city: "上海", active: false },
-  { city: "苏州", active: false },
-  { city: "重庆", active: false },
-  { city: "天津", active: false },
-  { city: "济南", active: false },
-  { city: "成都", active: false },
-  { city: "宁波", active: false },
-  { city: "合肥", active: false },
-  { city: "西安", active: false },
-  { city: "南京", active: false },
-  { city: "武汉", active: false },
-  { city: "深圳", active: false },
-  { city: "东莞", active: false },
-  { city: "福州", active: false },
-]);
+// ============================================== ai相关功能
+// ai识别景点和户外活动
+function aiFn() {
+  showAiContentLoading.value = true;
+  placeAiList.value = [];
+  allInputText = {};
 
-// 获取数组随机元素
-function getRandomElement(array) {
-  const randomIndex = Math.floor(Math.random() * array.length);
-  return array[randomIndex];
+  // 获取文案
+  let originElement = document.querySelector(".note-need-content");
+  const content = originElement.innerText;
+  let aiElement = document.querySelector(".note-need-content-ai");
+
+  GM_xmlhttpRequest({
+    method: "POST",
+    url: "https://api.coze.cn/open_api/v2/chat",
+    headers: {
+      Authorization:
+        "Bearer pat_SQEDtuwfbazgIEEcEpUzndPkMeCbJh1eN4Dt7Om8RJ3ReMFHf4tdt2hrDrWtwmEW",
+      "Content-Type": "application/json",
+    },
+    data: JSON.stringify({
+      conversation_id: "",
+      bot_id: "7392030733609091123",
+      user: "29032201862555",
+      stream: false,
+      query: content,
+    }),
+    onload: function (response) {
+      showAiContentLoading.value = false;
+
+      const result = JSON.parse(response.response);
+      if (result?.messages?.[0].content) {
+        // 对ai数据进行处理
+        let contentStripped = result?.messages?.[0].content.replace(/\n/g, "");
+        let fixedContent = contentStripped.replace(/(\w+):/g, '"$1":');
+        // 字符串值中包含了引号，这会导致解析错误
+        const startIndex = 12;
+        const endIndex = fixedContent.search('","key_words');
+        const errorTxt = fixedContent.substring(startIndex, endIndex);
+        const rightTxt = errorTxt.replace(/\"/g, "").replace(/\'/g, "");
+        let completeTxt =
+          fixedContent.substring(0, startIndex) +
+          rightTxt +
+          fixedContent.substring(endIndex);
+
+        completeTxt = JSON.parse(completeTxt);
+
+        if (completeTxt.content) {
+          aiElement.innerText = completeTxt.content;
+        }
+
+        if (completeTxt.key_words) {
+          placeAiList.value = completeTxt.key_words;
+          // 关键字添加到图片上
+          addCoverText(activeCityName + "周边游");
+          let id = 0;
+          placeAiList.value.forEach((item, index) => {
+            // 添加封面图
+            if (item && index >= 0 && index < 2) {
+              addCoverText(item);
+            }
+            // 添加其它图
+            if (item && index >= 2 && index < 6) {
+              if (id >= 0 && id <= 3) {
+                textManage(true, id, item);
+              }
+              id = id + 1;
+            }
+          });
+        }
+      }
+    },
+  });
 }
 </script>
 
 <template>
-  <div class="xhs-menu-container">
+  <div class="xhs-menu-container" v-if="showMenu">
     <el-button type="danger" @click="getCollage(false)">获取拼图</el-button>
     <el-button type="danger" @click="getOriginImg(false)">获取原图</el-button>
     <div class="citys">
@@ -1038,7 +1120,7 @@ function getRandomElement(array) {
   <el-dialog
     v-model="dialogVisible"
     title=""
-    width="98%"
+    width="100%"
     :before-close="closeDialog"
     :destroy-on-close="true"
   >
@@ -1088,33 +1170,57 @@ function getRandomElement(array) {
       </div>
       <div class="right-content">
         <h2 class="canvas-title">文案区域</h2>
-        <div class="outer-need-content">
-          <div class="content-btns">
-            <el-button type="success" @click="handDownloadTxt"
-              >下载文案</el-button
+        <div class="content-btns">
+          <div class="not-used">
+            <el-button type="primary" @click="handDownloadTxt"
+              >下载文案(原)</el-button
             >
-            <el-button type="primary" @click="handDownload">下载图片</el-button>
-            <el-button type="success" @click="copyArticle">复制文案</el-button>
             <el-button type="success" @click="changeIndexImg"
               >切换首图</el-button
             >
-            <el-button type="primary" @click="closeDialog">关闭弹窗</el-button>
             <el-button type="primary" @click="addXHSId">标记为已下载</el-button>
+            <el-button type="success" @click="copyArticle">复制文案</el-button>
+            <el-button type="primary" @click="getCollage(false)"
+              >获取拼图</el-button
+            >
+            <el-button type="success" @click="getOriginImg(false)"
+              >获取原图</el-button
+            >
           </div>
-          <div class="note-need-content"></div>
+          <div class="used">
+            <el-button type="primary" @click="aiFn">AI改写生成</el-button>
+            <el-button type="success" @click="handDownloadTxtAi"
+              >下载文案(AI)</el-button
+            >
+            <el-button type="primary" @click="handDownload">下载图片</el-button>
+            <el-button type="danger" @click="closeDialog">关闭弹窗</el-button>
+          </div>
+        </div>
+        <div class="bottom-content-text">
+          <div class="note-need-content" contenteditable="true"></div>
+          <div
+            class="note-need-content-ai"
+            contenteditable="true"
+            v-loading="showAiContentLoading"
+          >
+            请使用AI生成...
+          </div>
+          <div class="places">
+            <span>关键字：</span>
+            <span v-if="!placeAiList.length && !showAiContentLoading"
+              >请使用AI生成...</span
+            >
+            <span v-if="showAiContentLoading">识别中...</span>
+            <span v-if="placeAiList.length" v-for="item in placeAiList"
+              >{{ item }} |
+            </span>
+            <span v-if="placeAiList.length"
+              >length: {{ placeAiList.length }}</span
+            >
+          </div>
         </div>
       </div>
     </div>
-    <template #footer>
-      <div class="dialog-footer">
-        <el-button type="success" @click="handDownloadTxt">下载文案</el-button>
-        <el-button type="primary" @click="handDownload">下载图片</el-button>
-        <el-button type="success" @click="copyArticle">复制文案</el-button>
-        <el-button type="success" @click="changeIndexImg">切换首图</el-button>
-        <el-button type="primary" @click="closeDialog">关闭弹窗</el-button>
-        <el-button type="primary" @click="addXHSId">标记为已下载</el-button>
-      </div>
-    </template>
   </el-dialog>
 </template>
 
@@ -1202,27 +1308,39 @@ function getRandomElement(array) {
   }
 }
 .dialog-content {
-  margin-left: 210px;
-  width: calc(100% - 210px);
+  width: 100vw;
+  height: 100vh;
   border-radius: 5px;
   display: flex;
   border: 4px solid red;
+  position: fixed;
+  top: 0;
+  left: 0;
+  background-color: #fff;
 
   .left-content {
-    width: 60%;
+    width: 55%;
+    height: 100%;
 
     h2 {
       font-size: 28px;
       text-align: center;
+      width: 100%;
+      height: 20px;
+      line-height: 20px;
     }
     .canvas {
+      height: 100%;
+      overflow: scroll;
+      width: 100%;
+
       .canvas-one {
         border-top: 4px solid red;
         display: flex;
         justify-content: space-between;
 
         .add-text {
-          min-width: 120px;
+          min-width: 100px;
           display: flex;
           justify-content: center;
           align-items: center;
@@ -1251,28 +1369,66 @@ function getRandomElement(array) {
     }
   }
   .right-content {
-    width: 40%;
+    width: 45%;
     border-left: 4px solid red;
 
     h2 {
       font-size: 28px;
       text-align: center;
+      width: 100%;
+      height: 20px;
+      line-height: 20px;
+    }
+
+    .content-btns {
+      width: 100%;
+      height: 100px;
+      border-top: 4px solid red;
+      padding: 10px 20px;
+      border-bottom: 4px solid red;
+      .not-used,
+      .used {
+        height: 40px;
+        line-height: 40px;
+        .el-button {
+          margin-right: 5px;
+        }
+      }
+    }
+    .bottom-content-text {
+      width: 100%;
+      height: calc(100% - 144px);
+
+      .note-need-content {
+        width: 100%;
+        height: 40%;
+        padding: 10px;
+        overflow: scroll;
+        border-bottom: 4px solid red;
+      }
+      .note-need-content-ai {
+        width: 100%;
+        height: 50%;
+        padding: 10px;
+        overflow: scroll;
+        font-weight: 400;
+        font-size: 16px;
+        line-height: 150%;
+        color: var(--color-primary-label);
+        white-space: pre-wrap;
+        overflow-wrap: break-word;
+        // padding-bottom: 20px;
+        border-bottom: 4px solid red;
+      }
+      .places {
+        width: 100%;
+        height: 10%;
+        color: blue;
+        padding-left: 10px;
+        vertical-align: middle;
+      }
     }
   }
-}
-.outer-need-content {
-  padding: 20px;
-  padding-top: 20px;
-  position: sticky;
-  top: 0;
-}
-
-.content-btns {
-  width: 100%;
-  display: flex;
-  justify-content: flex-start;
-  align-items: center;
-  margin-bottom: 10px;
 }
 </style>
 <style>
@@ -1310,5 +1466,10 @@ function getRandomElement(array) {
 }
 .note-need-content .tag {
   color: #666 !important;
+}
+.places {
+  font-size: 24px;
+  margin: 10px 0px;
+  color: blue;
 }
 </style>
