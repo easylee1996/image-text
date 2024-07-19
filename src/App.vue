@@ -21,6 +21,7 @@ let activeCityName = "";
 let onloadImageLength = 0; // 已经加载的图片数量
 let copedNoteIds = new Set(); // 数据库保存的小红书IDs
 let coverImgIndex = 0; // 封面索引
+let imgListNum = ref(16); // 获取图片数量限制
 
 // 响应式参数
 const placeAiList = ref([]);
@@ -138,14 +139,14 @@ function changeListStyle() {
       if (id === item1.id) {
         if (item.querySelector("img-count") === null) {
           const countEl = document.createElement("div");
-          item1?.note_card?.image_list.length >= 12
+          item1?.note_card?.image_list.length >= imgListNum.value
             ? countEl.setAttribute("class", "img-count")
             : countEl.setAttribute("class", "img-count img-count-default"); // 设置 class 属性
           countEl.textContent = item1?.note_card?.image_list.length; // 使用 textContent 添加文本内容
           item.appendChild(countEl);
         }
 
-        if (item1?.note_card?.image_list.length >= 12) {
+        if (item1?.note_card?.image_list.length >= imgListNum.value) {
           item.classList.add("need-item");
         }
       }
@@ -168,8 +169,8 @@ function interceptRequest() {
           const allNeedItems = [];
 
           res.data.items.forEach((item) => {
-            // 去除图片数量不足12
-            if (item?.note_card?.image_list?.length >= 12) {
+            // 去除图片数量不足的
+            if (item?.note_card?.image_list?.length >= imgListNum.value) {
               // 去除已经采集过的图片
               if (!copedNoteIds.has(item.id)) {
                 allNeedItems.push(item);
@@ -738,9 +739,11 @@ function createCover(changeIndexImg = false) {
   const ctx = canvas.getContext("2d");
 
   if (changeIndexImg) {
-    let randomIndex = Math.floor(Math.random() * pageInfo?.image_list?.length);
-    randomIndex = randomIndex + 1;
-    coverImgIndex = randomIndex;
+    if (coverImgIndex < pageInfo?.image_list?.length - 1) {
+      coverImgIndex = coverImgIndex + 1;
+    } else {
+      coverImgIndex = 0;
+    }
   }
 
   let originImages = pageInfo?.image_list[coverImgIndex].url_default ?? ""; // 原始图片
@@ -766,9 +769,13 @@ function createOriginImgs(index, changeIndexImg = false) {
 
   let image = new Image();
   image.crossOrigin = "Anonymous";
+
   if (changeIndexImg) {
-    let randomIndex = Math.floor(Math.random() * pageInfo?.image_list?.length);
-    coverImgIndex = randomIndex + 1;
+    if (coverImgIndex < pageInfo?.image_list?.length - 1) {
+      coverImgIndex = coverImgIndex + 1;
+    } else {
+      coverImgIndex = 0;
+    }
   }
 
   // 封面使用外部变量
@@ -1090,6 +1097,9 @@ function aiFn() {
   <div class="xhs-menu-container" v-if="showMenu">
     <el-button type="danger" @click="getCollage(false)">获取拼图</el-button>
     <el-button type="danger" @click="getOriginImg(false)">获取原图</el-button>
+    <el-input class="input" v-model="imgListNum" placeholder="请输入图片数量">
+      <template #prepend>图片数量</template>
+    </el-input>
     <div class="citys">
       <div class="title">自动搜索关键字</div>
 
