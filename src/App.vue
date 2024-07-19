@@ -6,11 +6,9 @@ import xhsIcon from "./assets/xhs-icon.png";
 import addImg from "./assets/smile.png";
 import { ref } from "vue";
 
-const maxImgLength = 4; // 拼图数量
-let minHeight = 10000,
-  minWidth = 10000,
-  scaleValue = 0.3, // 图片缩放比例
-  scaleAddSize = 50, // 图标放大尺寸
+const maxImgLength = 4; // 一张拼图的数量
+const imgNum = 4; // 有几张拼图
+let scaleAddSize = 50, // 图标放大尺寸
   initSmileWidth = 150, // 马赛克初始高度
   initSmileHeight = 150;
 let pageInfo = {};
@@ -668,27 +666,18 @@ function getCollage(reRender = false) {
 
   // 3.显示dialog之后，再在canvas内添加图片
   // TODO: 此处应该裁剪图片，目前采用的是所有图设置为列表中最短的一张宽度，高度为最短的一张高度，两者可以不是一张图
-  minWidth = 10000; // 重置最短宽高，否则会使用上一个帖子的最短宽高
-  minHeight = 10000;
-  pageInfo?.image_list?.forEach((item) => {
-    minWidth = Math.min(minWidth, item.width);
-    minHeight = Math.min(minHeight, item.height);
-  });
   onloadImageLength = 0;
   setTimeout(() => {
     // 生成封面
     createCover();
     // 生成拼图
-    for (let i = 0; i < pageInfo.canvasLength; i++) {
-      createImgs(i);
-    }
+    createImgs();
+
     // 监听点击事件
     addImgToCanvasEvent("cover");
     for (let i = 0; i < pageInfo.canvasLength; i++) {
       addImgToCanvasEvent(i);
     }
-    // 获取最低宽高之后，设置缩放比例
-    changeImgStyle();
   }, 0);
 }
 
@@ -711,30 +700,21 @@ function getOriginImg(reRender = false) {
   dialogVisible.value = true;
 
   // 3.显示之后，再在canvas内添加图片
-  minWidth = 10000; // 重置最短宽高，否则会使用上一个帖子的最短宽高
-  minHeight = 10000;
-  pageInfo?.image_list?.forEach((item) => {
-    minWidth = Math.min(minWidth, item.width);
-    minHeight = Math.min(minHeight, item.height);
-  });
-
   onloadImageLength = 0;
+
   setTimeout(() => {
+    // 创建图片
+    createOriginImgs();
+
+    // 监听点击事件
     for (let i = 0; i < pageInfo.canvasLength; i++) {
-      // 创建图片
-      createOriginImgs(i);
-      // 监听点击事件
-      for (let i = 0; i < pageInfo.canvasLength; i++) {
-        addImgToCanvasEvent(i);
-      }
-      // 设置缩放比例
-      changeOriginImgStyle(i);
+      addImgToCanvasEvent(i);
     }
   }, 0);
 }
 
 // 生成封面
-function createCover(changeIndexImg = false) {
+async function createCover(changeIndexImg = false) {
   const canvas = document.getElementById("cover-canvas");
   const ctx = canvas.getContext("2d");
 
@@ -748,28 +728,19 @@ function createCover(changeIndexImg = false) {
 
   let originImages = pageInfo?.image_list[coverImgIndex].url_default ?? ""; // 原始图片
 
-  let image = new Image();
-  image.crossOrigin = "Anonymous";
-  image.src = originImages;
-  image.onload = function () {
-    if (!changeIndexImg) onloadImageLength++;
-    // 此处仍然使用原本的宽度，是为了图片的分辨率，生成图片之后再缩小
-    canvas.width = minWidth * 2;
-    canvas.height = minHeight * 2;
-    ctx.drawImage(image, 0, 0, minWidth * 2, minHeight * 2);
-  };
+  let image = await loadImage(originImages);
+
+  if (!changeIndexImg) onloadImageLength++;
+  canvas.width = image.width * 2;
+  canvas.height = image.height * 2;
+  ctx.drawImage(image, 0, 0, image.width * 2, image.height * 2);
+
+  changeImgStyleCover();
 }
 
 // 生成原图
-function createOriginImgs(index, changeIndexImg = false) {
-  const canvas = document.getElementById("canvas" + index);
-  const ctx = canvas.getContext("2d");
-
-  let originImages = pageInfo.image_list ?? []; // 原始图片
-
-  let image = new Image();
-  image.crossOrigin = "Anonymous";
-
+async function createOriginImgs(changeIndexImg = false) {
+  // 切换首图
   if (changeIndexImg) {
     if (coverImgIndex < pageInfo?.image_list?.length - 1) {
       coverImgIndex = coverImgIndex + 1;
@@ -777,68 +748,124 @@ function createOriginImgs(index, changeIndexImg = false) {
       coverImgIndex = 0;
     }
   }
+  for (let index = 0; index < pageInfo.canvasLength; index++) {
+    const canvas = document.getElementById("canvas" + index);
+    const ctx = canvas.getContext("2d");
 
-  // 封面使用外部变量
-  if (index === 0) {
-    image.src = originImages[coverImgIndex].url_default;
-  } else {
-    image.src = originImages[index].url_default;
-  }
+    let originImages = pageInfo.image_list ?? []; // 原始图片
 
-  image.onload = function () {
+    // 封面使用外部变量
+    let src = "";
+    if (index === 0) {
+      src = originImages[coverImgIndex].url_default;
+    } else {
+      src = originImages[index].url_default;
+    }
+
+    let image = await loadImage(src);
+
     if (!changeIndexImg) onloadImageLength++;
-    canvas.width = originImages[index].width;
-    canvas.height = originImages[index].height;
-    ctx.drawImage(
-      image,
-      0,
-      0,
-      originImages[index].width,
-      originImages[index].height
-    );
-  };
+    canvas.width = image.width;
+    canvas.height = image.height;
+    ctx.drawImage(image, 0, 0, image.width, image.height);
+  }
+  // 设置缩放比例
+  changeOriginImgStyle();
 }
 
 // 生成拼图
-function createImgs(index) {
-  const canvas = document.getElementById("canvas" + index);
-  const ctx = canvas.getContext("2d");
-
+async function createImgs() {
   let nowImages = [], // 当前这张生成图片
-    loadCount = 0,
-    originImages = pageInfo.image_list ?? ""; // 原始图片
+    originImages = pageInfo.image_list ?? "", // 原始图片
+    nowIndex = 0; // 在生成第几张拼图
 
-  for (let i = index * maxImgLength; i < originImages.length; i++) {
-    let image = new Image();
-    image.crossOrigin = "Anonymous";
-    image.src = originImages[i].url_default;
+  for (let i = 0; i < originImages.length; i++) {
+    let image = await loadImage(originImages[i].url_default);
     nowImages.push(image);
-    image.onload = function () {
-      loadCount++;
 
-      // 4宫格
-      if (loadCount === maxImgLength) {
-        onloadImageLength++;
-        canvas.width = minWidth * 2;
-        canvas.height = minHeight * 2;
-        nowImages.forEach((item, index) => {
-          let heightIndex = index === 0 || index === 1 ? 0 : 1;
-          ctx.drawImage(
-            item,
-            (index % 2) * minWidth,
-            heightIndex * minHeight,
-            minWidth,
-            minHeight
-          );
-        });
-      }
-    };
+    // 4宫格
+    if (nowImages.length === maxImgLength && nowIndex < imgNum) {
+      const canvas = document.getElementById("canvas" + nowIndex);
+      const ctx = canvas.getContext("2d");
+      onloadImageLength++;
 
-    // 每次生成一张图片，中断循环，下一张图片是新的循环
-    if ((i + 1) % maxImgLength === 0 && i !== 0) {
-      break;
+      // 取出四张图片中的最低宽高
+      let minWidth = 10000; // 重置最短宽高，否则会使用上一个帖子的最短宽高
+      let minHeight = 10000;
+      nowImages.forEach((item) => {
+        minWidth = Math.min(minWidth, item.width);
+        minHeight = Math.min(minHeight, item.height);
+      });
+      debugger;
+
+      // 先设置canvas的宽高
+      canvas.width = minWidth * 2;
+      canvas.height = minHeight * 2;
+
+      // 设置四张图片的宽高
+      nowImages.forEach((item, index) => {
+        const needWidthHeight = calcImgWidthAndHeight(
+          item,
+          minWidth,
+          minHeight
+        );
+        let heightIndex = index === 0 || index === 1 ? 0 : 1;
+        // 前四个参数是绘制canvas的位置和宽高，后四个参数是绘制图片的位置和宽高
+        ctx.drawImage(
+          item,
+          needWidthHeight.startX,
+          needWidthHeight.startY,
+          needWidthHeight.width,
+          needWidthHeight.height,
+          (index % 2) * minWidth,
+          heightIndex * minHeight,
+          minWidth,
+          minHeight
+        );
+      });
+      nowImages = [];
+      nowIndex++;
+
+      changeImgStyle(minWidth, minHeight);
     }
   }
+}
+
+// 计算拼图图片的起始位置和宽度
+function calcImgWidthAndHeight(image, minWidth, minHeight) {
+  const widthRatio = image.width / minWidth;
+  const heightRatio = image.height / minHeight;
+
+  // 如果缩放宽度到最低宽度，高度等比例缩放后，高度比最低高度还低，则只能通过缩放高度到最低高度
+  if (image.width / heightRatio > minWidth) {
+    const scaleWidth = image.width / heightRatio;
+    const cutWidth = (scaleWidth - minWidth) / 2;
+    return {
+      startX: cutWidth,
+      startY: 0,
+      width: minWidth,
+      height: minHeight,
+    };
+  } else {
+    const scaleHeight = image.height / widthRatio; // 缩放后的高度
+    const cutHeight = (scaleHeight - minHeight) / 2; // 裁剪高度
+    return {
+      startX: 0,
+      startY: cutHeight,
+      width: minWidth,
+      height: minHeight,
+    };
+  }
+}
+
+// 加载图片
+function loadImage(src) {
+  return new Promise((resolve) => {
+    let image = new Image();
+    image.crossOrigin = "Anonymous";
+    image.src = src;
+    image.onload = () => resolve(image);
+  });
 }
 
 // 切换首图
@@ -846,22 +873,35 @@ function changeIndexImg() {
   if (downloadType.value === "collage") {
     createCover(true);
   } else {
-    createOriginImgs(0, true);
+    createOriginImgs(true);
   }
 }
 
+// 改变图片预览时的样式 - 封面
+function changeImgStyleCover() {
+  const leftContentEl = document.querySelector(
+    ".dialog-content > .left-content"
+  );
+  const canvasEl = document.querySelectorAll(".canvas canvas")[0];
+  const canvasWidth = leftContentEl?.clientWidth - 200;
+
+  canvasEl.style.width = canvasWidth + "px";
+}
+
 // 改变图片预览时的样式 - 拼图
-function changeImgStyle() {
+function changeImgStyle(minWidth, minHeight) {
   const leftContentEl = document.querySelector(
     ".dialog-content > .left-content"
   );
   const canvasEls = document.querySelectorAll(".canvas canvas");
   const canvasWidth = leftContentEl?.clientWidth - 200;
-  scaleValue = canvasWidth / (minWidth * 2);
 
-  canvasEls.forEach((item) => {
-    item.style.width = canvasWidth + "px";
-    item.style.height = scaleValue * minHeight * 2 + "px";
+  canvasEls.forEach((item, index) => {
+    // 封面图单独处理
+    if (index !== 0) {
+      // 这里设置的是整个canvas，只需要设置宽度，高度会自适应
+      item.style.width = canvasWidth + "px";
+    }
   });
   // 设置右侧操作按钮宽度
   const addTextEls = document.querySelectorAll(".add-text");
@@ -871,19 +911,22 @@ function changeImgStyle() {
 }
 
 // 改变图片预览时的样式 - 原图
-function changeOriginImgStyle(i) {
+function changeOriginImgStyle() {
   const leftContentEl = document.querySelector(
     ".dialog-content > .left-content"
   );
   const canvasEls = document.querySelectorAll(".canvas canvas");
   const canvasWidth = leftContentEl?.clientWidth - 200;
-  scaleValue = canvasWidth / (minWidth * 2);
-  canvasEls[i].style.width = canvasWidth + "px";
-  canvasEls[i].style.height = scaleValue * minHeight * 2 + "px";
+
+  canvasEls.forEach((item) => {
+    item.style.width = canvasWidth + "px";
+  });
 
   // 设置右侧操作按钮宽度
   const addTextEls = document.querySelectorAll(".add-text");
-  addTextEls[i].style.width = 200 + "px";
+  addTextEls.forEach((item, index) => {
+    item.style.width = 200 + "px";
+  });
 }
 
 // 获取数组随机元素
