@@ -6,20 +6,21 @@ import xhsIcon from "./assets/xhs-icon.png";
 import addImg from "./assets/smile.png";
 import { ref } from "vue";
 
-const maxImgLength = 4; // 一张拼图的数量
 const imgNum = 4; // 有几张拼图
 let scaleAddSize = 50, // 图标放大尺寸
-  initSmileWidth = 150, // 马赛克初始高度
+  initSmileWidth = 150, // 马赛克初始大小
   initSmileHeight = 150;
 let pageInfo = {};
 const allNotes = []; // 记录所有帖子
 let allInputText = {}; // 记录所有输入的文案
 let allImg = {}; // 记录当前帖子所有添加的图片
 let activeCityName = "";
-let onloadImageLength = 0; // 已经加载的图片数量
+let onloadImageLength = 0; // 已经加载的图片数量，用于加载完毕后再渲染文字和表情
 let copedNoteIds = new Set(); // 数据库保存的小红书IDs
 let coverImgIndex = 0; // 封面索引
-let imgListNum = ref(16); // 获取图片数量限制
+let imgListNum = ref(8); // 获取图片数量限制
+let initWidth = 900; // 初始宽高比例：9:16
+let initHeight = 1600;
 
 // 响应式参数
 const placeAiList = ref([]);
@@ -483,9 +484,13 @@ function textManage(type, id, text = null) {
       alert("最多添加3个文案");
       return false;
     }
-    allInputText[id].push(text);
+    // 给文字统一添加括号，除了封面的后面两张图
+    if (id !== "cover" || text.includes("周边游")) {
+      allInputText[id].push("(" + text + ")");
+    } else {
+      allInputText[id].push(text);
+    }
   } else {
-    // 将文字保存
     if (allInputText.hasOwnProperty(id) && allInputText[id].length > 0) {
       allInputText[id].pop();
     }
@@ -519,7 +524,7 @@ function createText(id) {
 }
 
 // 绘制文字
-function createCanvasText(id) {
+async function createCanvasText(id) {
   let canvas;
   if (id === "cover") {
     canvas = document.getElementById("cover-canvas");
@@ -533,9 +538,10 @@ function createCanvasText(id) {
   // 获取canvas上下文对象，可理解为：使用画布的权限
   const ctx = canvas.getContext("2d");
   //先设置文字字体和大小, 必须先设置，才可以读取文字的宽高
+
   const fontSize = textBaseX * 0.16;
   ctx.font = `italic bold ${fontSize}px 黑体`;
-  ctx.lineWidth = 24;
+  ctx.lineWidth = 24; // 设置投影
 
   const texts = allInputText[id];
   // 所有绘制文字的点位
@@ -557,7 +563,7 @@ function createCanvasText(id) {
       (metrics.actualBoundingBoxRight + metrics.actualBoundingBoxLeft) / 2;
     textHeight =
       metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent;
-    y = textBaseY - 200;
+    y = textBaseY - 120;
     points.push({ x, y });
 
     metrics = ctx.measureText(texts[1]);
@@ -566,7 +572,7 @@ function createCanvasText(id) {
       (metrics.actualBoundingBoxRight + metrics.actualBoundingBoxLeft) / 2;
     textHeight =
       metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent;
-    y = textBaseY + 200;
+    y = textBaseY + 120;
     points.push({ x, y });
   } else if (texts.length === 3) {
     metrics = ctx.measureText(texts[0]);
@@ -575,7 +581,7 @@ function createCanvasText(id) {
       (metrics.actualBoundingBoxRight + metrics.actualBoundingBoxLeft) / 2;
     textHeight =
       metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent;
-    y = textBaseY - 300;
+    y = textBaseY - 240;
     points.push({ x, y });
 
     metrics = ctx.measureText(texts[1]);
@@ -593,7 +599,7 @@ function createCanvasText(id) {
       (metrics.actualBoundingBoxRight + metrics.actualBoundingBoxLeft) / 2;
     textHeight =
       metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent;
-    y = textBaseY + 300;
+    y = textBaseY + 240;
     points.push({ x, y });
   }
 
@@ -606,8 +612,39 @@ function createCanvasText(id) {
     ctx.textBaseline = "middle";
     ctx.strokeStyle = "#000000";
     ctx.strokeText(text, point.x, point.y);
-    ctx.fillStyle = "#ECE474";
-    ctx.fillText(text, point.x, point.y);
+    // ctx.fillStyle = "#ECE474";
+    // ()使用不同颜色
+    if (text.includes("(") || text.includes(")")) {
+      const colorForBrackets = "#FD7933"; // 括号的颜色
+      const colorForContent = "#ffffff"; // 括号内文本的颜色
+
+      // 绘制左括号
+      ctx.fillStyle = colorForBrackets;
+      ctx.fillText("(", point.x, point.y);
+
+      // 计算左括号的宽度
+      const bracketWidth = ctx.measureText("(").width;
+
+      // 绘制括号内的文本
+      ctx.fillStyle = colorForContent;
+      ctx.fillText(
+        text.substring(1, text.length - 1),
+        point.x + bracketWidth,
+        point.y
+      );
+
+      // 计算括号内文本的宽度
+      const contentWidth = ctx.measureText(
+        text.substring(1, text.length - 1)
+      ).width;
+
+      // 绘制右括号
+      ctx.fillStyle = colorForBrackets;
+      ctx.fillText(")", point.x + bracketWidth + contentWidth, point.y);
+    } else {
+      ctx.fillStyle = "#ffffff";
+      ctx.fillText(text, point.x, point.y);
+    }
   }
 }
 
@@ -626,52 +663,23 @@ function getCollage(reRender = false) {
   // 1.对图片数量进行随机增加()
   let imageListLength = pageInfo?.image_list?.length || 0;
 
-  // 支持生成几张4宫格
-  pageInfo.canvasLength = Math.floor(imageListLength / maxImgLength);
-  // 最后一张拼图剩余几张原图
-  pageInfo.lastCanvasLength = imageListLength % maxImgLength;
-
-  // 拼图少于4张，随机增加原图
-  if (
-    pageInfo.canvasLength < 4 &&
-    imageListLength >= 12 &&
-    imageListLength < 16
-  ) {
-    // 少了4张
-    if (pageInfo.lastCanvasLength === 0) {
-      pageInfo.image_list.push(getRandomElement(pageInfo.image_list));
-      pageInfo.image_list.push(getRandomElement(pageInfo.image_list));
-      pageInfo.image_list.push(getRandomElement(pageInfo.image_list));
-      pageInfo.image_list.push(getRandomElement(pageInfo.image_list));
-      // 少3张
-    } else if (pageInfo.lastCanvasLength === 1) {
-      pageInfo.image_list.push(getRandomElement(pageInfo.image_list));
-      pageInfo.image_list.push(getRandomElement(pageInfo.image_list));
-      pageInfo.image_list.push(getRandomElement(pageInfo.image_list));
-      // 少2张
-    } else if (pageInfo.lastCanvasLength === 2) {
-      pageInfo.image_list.push(getRandomElement(pageInfo.image_list));
-      pageInfo.image_list.push(getRandomElement(pageInfo.image_list));
-      // 少1张
-    } else if (pageInfo.lastCanvasLength === 3) {
-      pageInfo.image_list.push(getRandomElement(pageInfo.image_list));
-    }
-  }
-  // 重新获取拼图数量
-  imageListLength = pageInfo?.image_list?.length || 0;
-  pageInfo.canvasLength = Math.floor(imageListLength / maxImgLength);
+  // 支持生成几张图片
+  pageInfo.canvasLength = 4;
 
   // 2.显示弹窗
   dialogVisible.value = true;
 
   // 3.显示dialog之后，再在canvas内添加图片
-  // TODO: 此处应该裁剪图片，目前采用的是所有图设置为列表中最短的一张宽度，高度为最短的一张高度，两者可以不是一张图
   onloadImageLength = 0;
   setTimeout(() => {
     // 生成封面
     createCover();
-    // 生成拼图
-    createImgs();
+    // 生成拼图 (暂不去除封面)
+    // const needImgList = pageInfo?.image_list.filter((_, index) => {
+    //   return index !== coverImgIndex;
+    // });
+    const needImgList = pageInfo?.image_list;
+    createImgs(needImgList);
 
     // 监听点击事件
     addImgToCanvasEvent("cover");
@@ -774,88 +782,166 @@ async function createOriginImgs(changeIndexImg = false) {
 }
 
 // 生成拼图
-async function createImgs() {
-  let nowImages = [], // 当前这张生成图片
-    originImages = pageInfo.image_list ?? "", // 原始图片
-    nowIndex = 0; // 在生成第几张拼图
+async function createImgs(allImgList) {
+  const imgNumType = distributeImages(allImgList.length);
+  let startIndex = 0;
+  imgNumType.forEach((item1, index1) => {
+    // 获取当前这张拼图需要的图片
+    let needImgs = allImgList.slice(startIndex, startIndex + item1);
+    const promises = needImgs.map((item2) => {
+      return loadImage(item2.url_default);
+    });
 
-  for (let i = 0; i < originImages.length; i++) {
-    let image = await loadImage(originImages[i].url_default);
-    nowImages.push(image);
-
-    // 4宫格
-    if (nowImages.length === maxImgLength && nowIndex < imgNum) {
-      const canvas = document.getElementById("canvas" + nowIndex);
-      const ctx = canvas.getContext("2d");
+    // 等待当前这张拼图的所有图片加载完成
+    Promise.all(promises).then((images) => {
+      createCollageImg(images, index1);
       onloadImageLength++;
+    });
+    startIndex = startIndex + item1;
+  });
+  // changeImgStyle(minWidth, minHeight);
+}
 
-      // 取出四张图片中的最低宽高
-      let minWidth = 10000; // 重置最短宽高，否则会使用上一个帖子的最短宽高
-      let minHeight = 10000;
-      nowImages.forEach((item) => {
-        minWidth = Math.min(minWidth, item.width);
-        minHeight = Math.min(minHeight, item.height);
-      });
-      debugger;
+// 创建2，3，4宫格图片
+function createCollageImg(imgs, id) {
+  const canvas = document.getElementById("canvas" + id);
+  const ctx = canvas.getContext("2d");
+  canvas.style.zoom = 0.4;
 
-      // 先设置canvas的宽高
-      canvas.width = minWidth * 2;
-      canvas.height = minHeight * 2;
+  // 先设置canvas的宽高
+  canvas.width = initWidth * 2;
+  canvas.height = initHeight * 2;
 
-      // 设置四张图片的宽高
-      nowImages.forEach((item, index) => {
-        const needWidthHeight = calcImgWidthAndHeight(
-          item,
-          minWidth,
-          minHeight
-        );
-        let heightIndex = index === 0 || index === 1 ? 0 : 1;
-        // 前四个参数是绘制canvas的位置和宽高，后四个参数是绘制图片的位置和宽高
-        ctx.drawImage(
-          item,
-          needWidthHeight.startX,
-          needWidthHeight.startY,
-          needWidthHeight.width,
-          needWidthHeight.height,
-          (index % 2) * minWidth,
-          heightIndex * minHeight,
-          minWidth,
-          minHeight
-        );
-      });
-      nowImages = [];
-      nowIndex++;
-
-      changeImgStyle(minWidth, minHeight);
-    }
+  // 4拼
+  if (imgs.length === 4) {
+    imgs.forEach((item, index) => {
+      const needImageInfo = calcImgWidthAndHeight(item);
+      let heightIndex = index === 0 || index === 1 ? 0 : 1;
+      ctx.drawImage(
+        item,
+        needImageInfo.startX,
+        needImageInfo.startY,
+        needImageInfo.width,
+        needImageInfo.height,
+        (index % 2) * initWidth,
+        heightIndex * initHeight,
+        initWidth,
+        initHeight
+      );
+    });
+    // 3拼
+  } else if (imgs.length === 3) {
+    let needImageInfo = calcImgWidthAndHeight(imgs[0]);
+    ctx.drawImage(
+      imgs[0],
+      needImageInfo.startX,
+      needImageInfo.height * 0.25,
+      needImageInfo.width,
+      needImageInfo.height * 0.5,
+      0,
+      0,
+      initWidth * 2,
+      initHeight
+    );
+    needImageInfo = calcImgWidthAndHeight(imgs[1]);
+    ctx.drawImage(
+      imgs[1],
+      needImageInfo.startX,
+      needImageInfo.startY,
+      needImageInfo.width,
+      needImageInfo.height,
+      0,
+      initHeight,
+      initWidth,
+      initHeight
+    );
+    needImageInfo = calcImgWidthAndHeight(imgs[2]);
+    ctx.drawImage(
+      imgs[2],
+      needImageInfo.startX,
+      needImageInfo.startY,
+      needImageInfo.width,
+      needImageInfo.height,
+      initWidth,
+      initHeight,
+      initWidth,
+      initHeight
+    );
+    // 2拼
+  } else if (imgs.length === 2) {
+    let needImageInfo = calcImgWidthAndHeight(imgs[0]);
+    ctx.drawImage(
+      imgs[0],
+      needImageInfo.startX,
+      needImageInfo.height * 0.25,
+      needImageInfo.width,
+      needImageInfo.height * 0.5,
+      0,
+      0,
+      initWidth * 2,
+      initHeight
+    );
+    needImageInfo = calcImgWidthAndHeight(imgs[1]);
+    ctx.drawImage(
+      imgs[1],
+      needImageInfo.startX,
+      needImageInfo.height * 0.25,
+      needImageInfo.width,
+      needImageInfo.height * 0.5,
+      0,
+      initHeight,
+      initWidth * 2,
+      initHeight
+    );
   }
 }
 
-// 计算拼图图片的起始位置和宽度
-function calcImgWidthAndHeight(image, minWidth, minHeight) {
-  const widthRatio = image.width / minWidth;
-  const heightRatio = image.height / minHeight;
+// 根据图片数量(排除首图)生成拼图组合
+function distributeImages(totalImages) {
+  // 定义可能的图片组合
+  const validCombinations = {
+    20: [4, 4, 4, 4],
+    19: [4, 4, 4, 4],
+    18: [4, 4, 4, 4],
+    17: [4, 4, 4, 4],
+    16: [4, 4, 4, 4],
+    15: [4, 4, 4, 3],
+    14: [4, 4, 3, 3],
+    13: [4, 3, 3, 3],
+    12: [4, 3, 3, 2],
+    11: [4, 3, 2, 2],
+    10: [3, 3, 2, 2],
+    9: [3, 2, 2, 2],
+    8: [2, 2, 2, 2],
+    7: [3, 2, 2],
+    6: [2, 2, 2],
+    5: [3, 2],
+    4: [2, 2],
+    3: [3],
+    2: [2],
+  };
+  return validCombinations[totalImages];
+}
 
-  // 如果缩放宽度到最低宽度，高度等比例缩放后，高度比最低高度还低，则只能通过缩放高度到最低高度
-  if (image.width / heightRatio > minWidth) {
-    const scaleWidth = image.width / heightRatio;
-    const cutWidth = (scaleWidth - minWidth) / 2;
-    return {
-      startX: cutWidth,
-      startY: 0,
-      width: minWidth,
-      height: minHeight,
-    };
-  } else {
-    const scaleHeight = image.height / widthRatio; // 缩放后的高度
-    const cutHeight = (scaleHeight - minHeight) / 2; // 裁剪高度
-    return {
-      startX: 0,
-      startY: cutHeight,
-      width: minWidth,
-      height: minHeight,
-    };
-  }
+// 计算拼图图片的起始位置和宽度
+function calcImgWidthAndHeight(image) {
+  // 保证宽度和高度都要高于initWidth和initHeight，可以放大或者缩小
+  // 获取缩放倍数因子，要求缩放后最终宽度和高度都要大于初始宽高
+  let scaleWidth = image.width / initWidth;
+  let scaleHeight = image.height / initHeight;
+  let scale = Math.min(scaleWidth, scaleHeight);
+  image.width = image.width / scale;
+  image.height = image.height / scale;
+  // drawImage使用说明：第一个参数是图片对象，2-5是裁剪图片的qi矩形，6-9是绘制图片的位置
+  // 2-5参数先工作，反正先用这4个参数把要裁剪的图片确定，然后再是后面4个参数
+  // 后面4个参数再确定绘制的位置和宽高和缩放，如果比确定裁剪的图像大就会缩放
+  // 两者是独立的
+  return {
+    startX: (image.width - initWidth) / 2,
+    startY: (image.height - initHeight) / 2,
+    width: initWidth * scale,
+    height: initHeight * scale,
+  };
 }
 
 // 加载图片
