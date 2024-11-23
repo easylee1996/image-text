@@ -18,17 +18,30 @@ function interceptRequest() {
         this._url = url
 
         // 详细页面
-        if (url.includes('detail')) {
+        if (url.includes('article/recreate/detail')) {
             this.addEventListener('readystatechange', function () {
+
                 if (this.readyState === 4) {
+
                     const res = JSON.parse(this.responseText) // 当前 xhr 对象上定义 responseText
                     Object.defineProperty(this, 'responseText', {
                         writable: true,
                     })
 
                     // 获取一些初始值
-                    now_task_keyword.value = res.data.keyword
-                    now_title.value = res.data.title
+                    if (res.data.title) {
+                        now_task_keyword.value = res.data.keyword
+                        task_titles.value = []
+                        task_titles.value.push('带你了解：' + now_task_keyword.value)
+                        task_titles.value.push('带你了解：' + now_task_keyword.value + '是什么？')
+                        task_titles.value.push('一文看懂：' + now_task_keyword.value)
+                        task_titles.value.push('一文看懂：' + now_task_keyword.value + '是什么？')
+                        now_title.value = res.data.title
+                        replaceTitleElement()
+                    }
+
+                    // 监听点击审核按钮
+                    listen_submit_click()
 
                     this.responseText = JSON.stringify(res)
                 }
@@ -52,12 +65,12 @@ listen_table_hover()
 async function listen_table_hover() {
     const trs = await getElementsByXPathAsync("//tr[contains(@class,'ant-table-row')]")
     trs.forEach(tr => {
+
+        // 弹窗显示详情信息
         const elm = tr.querySelector('td:nth-child(2)')
         const articel_id = tr.querySelector('td:nth-child(1)').innerText
-        // 获取详细信息
         const token = Cookies.get('enterprise_yyb_token');
         const Teamid = Cookies.get('Teamid')
-
         const popup = document.createElement('div')
         popup.className = 'popup'
         popup.innerHTML = `<h1>正在获取数据中...</h1>`
@@ -73,6 +86,24 @@ async function listen_table_hover() {
         elm.addEventListener('mouseleave', function (event) {
             popup.classList.remove('show')
         })
+
+        // 新标签页进入详情页面
+        const enter_elm = tr.querySelector('td:nth-child(6) > div > button:nth-child(1) > span')
+        if (enter_elm) {
+            // 直接变更点击的方法没用，因为是框架进行了事件管理维护，可用的方法是在上层节点禁用下层的点击事件
+            enter_elm.parentNode.addEventListener('click', function (event) {
+                if (event.target === enter_elm) {
+                    event.stopPropagation();
+                    event.preventDefault();
+
+                    const url = `https://ai.openvam.com/vam/ai/tools/text/secondCreation/ql3v5Roy7RaK?secondCreationType=poster&yybArticleId=${articel_id}`;
+
+                    window.open(url, '_blank');
+                }
+            });
+        }
+
+
     })
 }
 // 发送请求，获取详细信息
@@ -86,7 +117,6 @@ async function get_article_detail(article_id, token, Teamid, popup) {
             'Teamid': Teamid
         },
         onload: function (response) {
-            console.log(5555, JSON.parse(response.responseText))
             const articles = JSON.parse(response.responseText)['data']['query_articles']
             let html = '';
             articles.forEach(article => {
@@ -140,34 +170,43 @@ function changeTitle(title) {
     replaceTitleElement()
 }
 
-/**
- * 等待标题出现
- *
- * 因为标题是异步加载的，所以需要等待标题出现后再替换，默认替换的原因是为了将标题栏完整的交由自己控制
- * 否则如果用户直接修改了原本的标题，无法监听到
- */
-delayTitleVisible()
-function delayTitleVisible() {
-    let originElement = null
-    const timer = setInterval(() => {
-        originElement = document.querySelector('#w-e-textarea-1')
-        if (originElement && now_title.value) {
-            replaceTitleElement()
-            clearInterval(timer)
-        }
-    }, 100)
-}
 // 替换原生的标题输入框
-function replaceTitleElement() {
-    const originElement = document.querySelector('#w-e-textarea-1')
+async function replaceTitleElement() {
     const input = document.createElement('input')
-    input.id = 'w-e-textarea-1'
+    input.id = 'manual-edit-id'
     input.type = 'text'
+    input.style.width = '100%'
     input.value = now_title.value
     input.addEventListener('input', event => {
         now_title.value = event.target.value
     })
-    originElement.parentNode.replaceChild(input, originElement)
+    let originElement = document.querySelector("#manual-edit-id")
+    if (originElement) {
+        originElement.parentNode.replaceChild(input, originElement)
+    } else {
+        originElement = (await getElementsByXPathAsync("(//div[contains(@class,'ai-assistant-input__edit')])[1]"))[0]
+        originElement.style.display = 'none'
+        originElement.parentNode.appendChild(input)
+    }
+
+}
+// ========================================== 保存、审核相关处理 ===========================================
+// 替换原本的提交审核按钮，加一个自己的审核按钮，来做控制
+async function listen_submit_click() {
+    const submit_el = (await getElementsByXPathAsync("//button/span[text()='提交审核']/parent::button"))[0]
+    const save_el = (await getElementsByXPathAsync("//button/span[text()='保 存']/parent::button"))[0]
+    const origin_title_el = (await getElementsByXPathAsync("(//div[contains(@class,'ai-assistant-input__edit')])[1]//span/span/span"))[0]
+
+    // 点击审核后，刷新
+    submit_el.addEventListener('click', async (event) => {
+        if (now_title.value !== origin_title_el.innerText) {
+            ElMessage.warning('未提前保存，自动保存中....')
+            save_el.click()
+
+            await getElementsByXPathAsync("//div[@class='ant-message']//span[text()='保存成功']")
+            window.location.reload()
+        }
+    })
 }
 </script>
 
@@ -197,7 +236,7 @@ function replaceTitleElement() {
     flex-direction: column;
     position: fixed;
     left: 0%;
-    top: 22%;
+    top: 300px;
     background-color: #fff;
     color: #2f3542;
     padding: 10px 10px;
