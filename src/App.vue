@@ -1,6 +1,7 @@
 <script setup>
 import { GM_xmlhttpRequest } from '$'
 import { ref, h, nextTick } from 'vue'
+import { getElementsByXPathAsync } from './utils/utils'
 
 // 变量
 const now_task_keyword = ref('') // 当前任务关键词
@@ -45,49 +46,46 @@ function interceptRequest() {
         return originSend.apply(this, arguments)
     }
 }
-// ========================================== 封面处理 ===========================================
-/**
- * 进入详情页：https://yyb-api.yilancloud.com/api/cms/v1/article/recreate/detail?yyb_article_id=VjdvBm7bGay8
- * 接口获取重绘封面历史：https://yyb-api.yilancloud.com/api/cms/v1/article/redraw_history/list?slot_id=W1M2B0JkLMdJ&redraw_class_id=3XLnj3gejJ6g
- * 保存更新标题和文章的接口：https://yyb-api.yilancloud.com/api/cms/v1/article/recreate/update 这里面有redraw_class_id和redraw_id以及slot_id
- * 保存封面的接口：https://yyb-api.yilancloud.com/api/ai/v1/draw/image/upload 传递file_name
- *
- * 目前来看无法通过接口的形式模拟，原因在于：1.修改是直接通过canvas画的，不是什么接口传参 2.最终保存的接口传递的都是创客贴的参数，而不是传一个路径，这些参数虽然可以模拟，但是没有意义，因为最底层的canvas是直接画图画的
- *
- *
- *
- *
- */
+// ========================================== 列表相关处理 ===========================================
+listen_table_hover()
+async function listen_table_hover() {
+    const trs = await getElementsByXPathAsync("//tr[contains(@class,'ant-table-row')]")
+    trs.forEach(tr => {
+        const elm = tr.querySelector('td:nth-child(2)')
+        const articel_id = tr.querySelector('td:nth-child(1)').innerText
+        // 获取详细信息
 
-function gotoCover() {
-    // 点击编辑图片
-    // const xpath = "//span[text()='编辑图片']"
-    // const result = document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null)
-    // const targetSpan = result.singleNodeValue
-    // if (targetSpan) {
-    //     targetSpan.click()
-    // }
-
-    // 使用 GM_addValueChangeListener 传递
-
-    // 定义 XPath 表达式
-    const xpath2 = "//div[@class='bottom-tool-item-tips' and text()='图层']"
-
-    // 使用 document.evaluate 在 iframe 内部执行 XPath 查询
-    const result2 = iframeDocument.evaluate(xpath2, iframeDocument, null, XPathResult.ANY_TYPE, null)
-
-    // 点击图层
-    const targetSpan2 = result2.singleNodeValue
-    if (targetSpan2) {
-        targetSpan2.click()
-    }
-    console.log(33333, targetSpan2)
-
-    // 点击文本框
-    const xpath3 = "//span[@class='elem-type-text' and not(contains(text(), '['))]"
-
-    // 右键点击当前选中框
-    const xpath4 = "//div[@class='ckt-editor-box']"
+        // 创建浮层元素
+        const popup = document.createElement('div')
+        popup.className = 'popup'
+        popup.innerHTML = `<div>
+            <div>123</div>
+            </div>`
+        document.body.appendChild(popup)
+        elm.addEventListener('mouseover', function (event) {
+            get_article_detail(articel_id)
+            popup.classList.add('show')
+            const rect = elm.getBoundingClientRect()
+            popup.style.top = `${rect.top + window.scrollY}px`
+            popup.style.left = `${rect.right + window.scrollX}px`
+        })
+        elm.addEventListener('mouseout', function (event) {
+            popup.classList.remove('show')
+        })
+    })
+}
+// 发送请求，获取详细信息
+async function get_article_detail(article_id) {
+    GM_xmlhttpRequest({
+        method: 'POST',
+        url: `https://yyb-api.yilancloud.com/api/cms/v1/article/recreate/detail?yyb_article_id=${article_id}`,
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        onload: function (response) {
+            console.log(5555, response)
+        },
+    })
 }
 
 // ========================================== 标题相关处理 ===========================================
@@ -221,5 +219,31 @@ function replaceTitleElement() {
 <style>
 #w-e-textarea-1 {
     width: 100%;
+}
+.popup {
+    display: none;
+    position: absolute;
+    background-color: white;
+    border: 1px solid #ccc;
+    padding: 10px;
+    box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.3);
+    z-index: 1000;
+    margin-left: 20px;
+}
+
+.popup::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: -10px; /* 向左移动10px，使三角形完全显示 */
+    transform: translateY(-50%);
+    border-top: 10px solid transparent;
+    border-bottom: 10px solid transparent;
+    border-right: 10px solid #dedede; /* 三角形的边框颜色 */
+    z-index: 1001; /* 确保三角形位于浮层之上 */
+}
+
+.popup.show {
+    display: block;
 }
 </style>

@@ -181,7 +181,7 @@ async def goto_task_change_cover(task):
             await asyncio.sleep(1)
             await now_frame.locator(
                 "//span[@class='design-header__control-text' and text() = '下载']"
-            ).click(timeout=3000)
+            ).click(timeout=5000)
             print("保存图片中 ->", task["title"])
 
             # 8.保存帖子
