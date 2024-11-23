@@ -2,6 +2,7 @@
 import { GM_xmlhttpRequest } from '$'
 import { ref, h, nextTick } from 'vue'
 import { getElementsByXPathAsync } from './utils/utils'
+import Cookies from 'js-cookie';
 
 // 变量
 const now_task_keyword = ref('') // 当前任务关键词
@@ -54,36 +55,48 @@ async function listen_table_hover() {
         const elm = tr.querySelector('td:nth-child(2)')
         const articel_id = tr.querySelector('td:nth-child(1)').innerText
         // 获取详细信息
+        const token = Cookies.get('enterprise_yyb_token');
+        const Teamid = Cookies.get('Teamid')
 
-        // 创建浮层元素
         const popup = document.createElement('div')
         popup.className = 'popup'
-        popup.innerHTML = `<div>
-            <div>123</div>
-            </div>`
+        popup.innerHTML = `<h1>正在获取数据中...</h1>`
         document.body.appendChild(popup)
-        elm.addEventListener('mouseover', function (event) {
-            get_article_detail(articel_id)
+        elm.addEventListener('mouseenter', function (event) {
+            get_article_detail(articel_id, token, Teamid, popup)
+
             popup.classList.add('show')
             const rect = elm.getBoundingClientRect()
             popup.style.top = `${rect.top + window.scrollY}px`
             popup.style.left = `${rect.right + window.scrollX}px`
         })
-        elm.addEventListener('mouseout', function (event) {
+        elm.addEventListener('mouseleave', function (event) {
             popup.classList.remove('show')
         })
     })
 }
 // 发送请求，获取详细信息
-async function get_article_detail(article_id) {
+async function get_article_detail(article_id, token, Teamid, popup) {
     GM_xmlhttpRequest({
-        method: 'POST',
+        method: 'GET',
         url: `https://yyb-api.yilancloud.com/api/cms/v1/article/recreate/detail?yyb_article_id=${article_id}`,
         headers: {
             'Content-Type': 'application/json',
+            'Token': token,
+            'Teamid': Teamid
         },
         onload: function (response) {
-            console.log(5555, response)
+            console.log(5555, JSON.parse(response.responseText))
+            const articles = JSON.parse(response.responseText)['data']['query_articles']
+            let html = '';
+            articles.forEach(article => {
+                // TODO：这里要判断状态，现在没有数据，后面再判断
+                // if ()
+                html += `
+                        <h2>${article.title}</h2>
+                `;
+            });
+            popup.innerHTML = html
         },
     })
 }
@@ -160,7 +173,8 @@ function replaceTitleElement() {
 
 <template>
     <div class="image-text-container">
-        <el-button type="success" @click="getTitles()" v-loading="task_titles_loading" :disabled="task_titles_loading">获取延伸标题</el-button>
+        <el-button type="success" @click="getTitles()" v-loading="task_titles_loading"
+            :disabled="task_titles_loading">获取延伸标题</el-button>
         <div class="title-list">
             <div class="title-one" v-for="item in task_titles" :key="item" @click="changeTitle(item)">
                 {{ item }}
@@ -198,13 +212,15 @@ function replaceTitleElement() {
         width: 98%;
         margin-bottom: 3px;
     }
-    .el-button + .el-button {
+
+    .el-button+.el-button {
         margin-left: 0px;
     }
 
     .title-list {
         margin-bottom: 10px;
         width: 100%;
+
         .title-one {
             border: 1px solid #999;
             border-radius: 5px;
@@ -220,6 +236,7 @@ function replaceTitleElement() {
 #w-e-textarea-1 {
     width: 100%;
 }
+
 .popup {
     display: none;
     position: absolute;
@@ -235,12 +252,15 @@ function replaceTitleElement() {
     content: '';
     position: absolute;
     top: 50%;
-    left: -10px; /* 向左移动10px，使三角形完全显示 */
+    left: -10px;
+    /* 向左移动10px，使三角形完全显示 */
     transform: translateY(-50%);
     border-top: 10px solid transparent;
     border-bottom: 10px solid transparent;
-    border-right: 10px solid #dedede; /* 三角形的边框颜色 */
-    z-index: 1001; /* 确保三角形位于浮层之上 */
+    border-right: 10px solid #dedede;
+    /* 三角形的边框颜色 */
+    z-index: 1001;
+    /* 确保三角形位于浮层之上 */
 }
 
 .popup.show {

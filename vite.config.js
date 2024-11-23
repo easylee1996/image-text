@@ -63,6 +63,7 @@ export default defineConfig({
                 icon: 'https://vitejs.dev/logo.svg',
                 namespace: 'npm/vite-plugin-monkey',
                 match: ['http*://ai.openvam.com/*', 'http*://*.chuangkit.com/*'],
+                connect: ['api.coze.cn', 'yyb-api.yilancloud.com'], // 不能填写 http 协议和后缀，只能填纯域名
             },
             build: {
                 externalGlobals: {
