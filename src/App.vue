@@ -1,14 +1,18 @@
 <script setup>
-import { GM_xmlhttpRequest } from '$'
+import { GM_xmlhttpRequest, GM_getResourceURL } from '$'
 import { ref, h, nextTick } from 'vue'
 import { getElementsByXPathAsync } from './utils/utils'
 import Cookies from 'js-cookie';
 
 // 变量
 const now_task_keyword = ref('') // 当前任务关键词
+let token = Cookies.get('enterprise_yyb_token')
+let Teamid = Cookies.get('TeamId')
+let now_page_detail_info = {}
+let change_cover_image_obj = {}
+let save_is_change_cover = false
 
 interceptRequest()
-
 // 监听请求
 function interceptRequest() {
     // 返回劫持
@@ -40,6 +44,9 @@ function interceptRequest() {
                         replaceTitleElement()
                     }
 
+                    now_page_detail_info = res.data
+
+
                     // 监听点击审核按钮
                     listen_submit_click()
 
@@ -52,13 +59,135 @@ function interceptRequest() {
     // 提交劫持
     const originSend = XMLHttpRequest.prototype.send
     XMLHttpRequest.prototype.send = function () {
-        if (this._url.includes('update')) {
+        if (this._url.includes('/article/recreate/update')) {
             let data = JSON.parse(arguments[0])
             data.title = now_title.value
+            if (save_is_change_cover) {
+                data.contents[1] = change_cover_image_obj
+                save_is_change_cover = false
+            }
             arguments[0] = JSON.stringify(data)
+            console.log('最终参数', arguments[0])
         }
         return originSend.apply(this, arguments)
     }
+}
+// ========================================== 封面图片处理 ===========================================
+/**
+ * 加载图片有两种方式，访问在线 url 不必多说，如果要访问本地文件，需要在google 插件管理里面将油猴脚本设置为允许访问文件(详情)，然后在油猴脚本高级设置里面，打开允许访问所有本地文件
+ * 一种是GM_getResourceURL，需要先将本地文件放到 @resource 配置中，然后通过 GM_getResourceURL 获取资源 URL，这里是资源的名字，配置时，自动有个名字，在插件顶部申明文件可以查看
+ * 一种是 GM_xmlhttpRequest，直接访问本地的地址即可（推荐，更灵活）
+ * @param url 图片地址或本地路径
+ */
+// 将图片转为 Blob
+function fetchImageAsBlob(url) {
+    return new Promise((resolve, reject) => {
+        GM_xmlhttpRequest({
+            method: 'get',
+            responseType: 'blob',
+            url: url,
+            onload: function (response) {
+                console.log('图片请求成功', response)
+                if (response.status === 200) {
+                    resolve(response.response);
+                } else {
+                    reject(new Error(`Failed to fetch image: ${response.statusText}`));
+                }
+            },
+            onerror: function (error) {
+                reject(new Error(`Network error: ${error}`));
+            }
+        });
+    });
+}
+
+// 自定义post
+function my_post(url, data) {
+    return new Promise((resolve, reject) => {
+        GM_xmlhttpRequest({
+            method: 'POST',
+            url: url,
+            headers: {
+                'Content-Type': 'application/json',
+                'Token': token,
+                'Teamid': Teamid
+            },
+            data: JSON.stringify(data),
+            onload: function (response) {
+                if (response.status === 200) {
+                    resolve(JSON.parse(response.responseText));
+                } else {
+                    reject(new Error(`Failed to fetch image: ${response.statusText}`));
+                }
+            },
+            onerror: function (error) {
+                reject(new Error(`Network error: ${error}`));
+            }
+        })
+    })
+}
+// 上传图片到 oss
+function put_image_to_oss(result1, imageBlob) {
+    return new Promise((resolve, reject) => {
+        // 上传图片
+        GM_xmlhttpRequest({
+            method: 'PUT',
+            url: result1.data.post_url,
+            headers: {
+                'Content-Type': 'image/webp',
+            },
+            data: imageBlob,
+            onload: function (response2) {
+                resolve()
+            },
+            onerror: function (error) {
+                reject(new Error(`Network error: ${error}`));
+            }
+        })
+    })
+}
+
+// 改变封面
+async function change_cover() {
+    ElMessage.warning('正在修改封面...')
+    // 0.首先创建封面图片
+    const result0 = await my_post('http://localhost:6174/api/template/submit_title', { "title": now_title.value })
+    console.log('result0', result0)
+
+    // 1.获取阿里云 oss 地址
+    const result1 = await my_post(`https://yyb-api.yilancloud.com/api/ai/v1/draw/image/upload`, { "file_name": "cover.webp", "content_type": "image/webp" })
+    console.log('result1', result1)
+
+
+    // 2.上传到阿里云 oss
+    // const filePath = 'file:///Users/miao/Downloads/cover.webp';
+    const filePath = 'http://localhost:6174/api/cover/cover.webp';
+    const imageBlob = await fetchImageAsBlob(filePath);
+    await put_image_to_oss(result1, imageBlob)
+    console.log('上传 oos 成功')
+
+    // 3.创建图片槽位
+    console.log({ "op_image_jobid": result1.data.file_id, "yyb_article_id": now_page_detail_info.yyb_article_id, "team_id": Teamid })
+    const result2 = await my_post(`https://yyb-api.yilancloud.com/api/cms/v1/article/redraw/slot/create`, { "op_image_jobid": result1.data.file_id, "yyb_article_id": now_page_detail_info.yyb_article_id, "team_id": Teamid })
+    console.log('result2', result2)
+
+    // 4.保存图片槽位
+    await my_post(`https://yyb-api.yilancloud.com/api/cms/v1/article/redraw_history/custom_save`, { "slot_id": result2.data.slot_id, "op_image_jobid": result1.data.file_id, "redraw_class_id": now_page_detail_info.contents[1].select_image.redraw_class_id, "yyb_article_id": now_page_detail_info.yyb_article_id, "team_id": Teamid })
+
+    // 5.组装上传的图片对象
+    change_cover_image_obj = {
+        "tp": 2, "content": "", "content_html": "", "method_id": "0", "op_image_jobid": result1.data.file_id, "slot_id": result2.data.slot_id, "redraw_id": now_page_detail_info.contents[1].select_image.redraw_id, "redraw_class_id": now_page_detail_info.contents[1].select_image.redraw_class_id, "redraw_class_name": "自定义", "design_id": "", "template_id": "", "template_file_id": ""
+    }
+
+    // 6.点击保存按钮
+    save_is_change_cover = true
+    const save_el = (await getElementsByXPathAsync("//button/span[text()='保 存']/parent::button"))[0]
+    save_el.click()
+
+    // 暂时不刷新，测试一下是否有问题再说
+    // await getElementsByXPathAsync("//div[@class='ant-message']//span[text()='保存成功']")
+    // window.location.reload()
+
 }
 // ========================================== 列表相关处理 ===========================================
 listen_table_hover()
@@ -69,14 +198,12 @@ async function listen_table_hover() {
         // 弹窗显示详情信息
         const elm = tr.querySelector('td:nth-child(2)')
         const articel_id = tr.querySelector('td:nth-child(1)').innerText
-        const token = Cookies.get('enterprise_yyb_token');
-        const Teamid = Cookies.get('Teamid')
         const popup = document.createElement('div')
         popup.className = 'popup'
         popup.innerHTML = `<h1>正在获取数据中...</h1>`
         document.body.appendChild(popup)
         elm.addEventListener('mouseenter', function (event) {
-            get_article_detail(articel_id, token, Teamid, popup)
+            get_article_detail(articel_id, popup)
 
             popup.classList.add('show')
             const rect = elm.getBoundingClientRect()
@@ -107,7 +234,7 @@ async function listen_table_hover() {
     })
 }
 // 发送请求，获取详细信息
-async function get_article_detail(article_id, token, Teamid, popup) {
+async function get_article_detail(article_id, popup) {
     GM_xmlhttpRequest({
         method: 'GET',
         url: `https://yyb-api.yilancloud.com/api/cms/v1/article/recreate/detail?yyb_article_id=${article_id}`,
@@ -191,7 +318,7 @@ async function replaceTitleElement() {
 
 }
 // ========================================== 保存、审核相关处理 ===========================================
-// 替换原本的提交审核按钮，加一个自己的审核按钮，来做控制
+// 提交前判断是否保存
 async function listen_submit_click() {
     const submit_el = (await getElementsByXPathAsync("//button/span[text()='提交审核']/parent::button"))[0]
     const save_el = (await getElementsByXPathAsync("//button/span[text()='保 存']/parent::button"))[0]
@@ -220,7 +347,7 @@ async function listen_submit_click() {
             </div>
         </div>
         <el-button type="danger">获取内容</el-button>
-        <el-button type="danger" @click="gotoCover()">修改封面</el-button>
+        <el-button type="danger" @click="change_cover()">修改封面</el-button>
     </div>
     <!-- <el-dialog v-model="dialogVisible" title="" width="100%" :destroy-on-close="true">
         <div class="dialog-content"></div>
