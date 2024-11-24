@@ -169,11 +169,20 @@ async function change_cover() {
     const result2 = await my_post(`https://yyb-api.yilancloud.com/api/cms/v1/article/redraw/slot/create`, { "op_image_jobid": result1.data.file_id, "yyb_article_id": now_page_detail_info.yyb_article_id, "team_id": Teamid })
 
     // 4.保存图片槽位
-    await my_post(`https://yyb-api.yilancloud.com/api/cms/v1/article/redraw_history/custom_save`, { "slot_id": result2.data.slot_id, "op_image_jobid": result1.data.file_id, "redraw_class_id": now_page_detail_info.contents[1].select_image.redraw_class_id, "yyb_article_id": now_page_detail_info.yyb_article_id, "team_id": Teamid })
+    // 获取封面的 redraw_id
+    let redraw_id = ""
+    let redraw_class_id = ""
+    for (const item of now_page_detail_info.contents) {
+        if (item.tp === 2 && item?.select_image) {
+            redraw_id = item.select_image.redraw_id
+            redraw_class_id = item.select_image.redraw_class_id
+        }
+    }
+    await my_post(`https://yyb-api.yilancloud.com/api/cms/v1/article/redraw_history/custom_save`, { "slot_id": result2.data.slot_id, "op_image_jobid": result1.data.file_id, "redraw_class_id": redraw_class_id, "yyb_article_id": now_page_detail_info.yyb_article_id, "team_id": Teamid })
 
     // 5.组装上传的图片对象
     change_cover_image_obj = {
-        "tp": 2, "content": "", "content_html": "", "method_id": "0", "op_image_jobid": result1.data.file_id, "slot_id": result2.data.slot_id, "redraw_id": now_page_detail_info.contents[1].select_image.redraw_id, "redraw_class_id": now_page_detail_info.contents[1].select_image.redraw_class_id, "redraw_class_name": "自定义", "design_id": "", "template_id": "", "template_file_id": ""
+        "tp": 2, "content": "", "content_html": "", "method_id": "0", "op_image_jobid": result1.data.file_id, "slot_id": result2.data.slot_id, "redraw_id": redraw_id, "redraw_class_id": redraw_class_id, "redraw_class_name": "自定义", "design_id": "", "template_id": "", "template_file_id": ""
     }
 
     // 6.点击保存按钮
