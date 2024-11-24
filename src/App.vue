@@ -114,6 +114,7 @@ function my_post(url, data) {
             },
             data: JSON.stringify(data),
             onload: function (response) {
+                console.log('请求成功', response)
                 if (response.status === 200) {
                     resolve(JSON.parse(response.responseText));
                 } else {
@@ -151,25 +152,21 @@ function put_image_to_oss(result1, imageBlob) {
 async function change_cover() {
     ElMessage.warning('正在修改封面...')
     // 0.首先创建封面图片
-    const result0 = await my_post('http://localhost:6174/api/template/submit_title', { "title": now_title.value })
-    console.log('result0', result0)
+    const result0 = await my_post(import.meta.env.VITE_API_URL + '/api/template/submit_title', { "title": now_title.value })
 
     // 1.获取阿里云 oss 地址
     const result1 = await my_post(`https://yyb-api.yilancloud.com/api/ai/v1/draw/image/upload`, { "file_name": "cover.webp", "content_type": "image/webp" })
-    console.log('result1', result1)
 
 
     // 2.上传到阿里云 oss
     // const filePath = 'file:///Users/miao/Downloads/cover.webp';
-    const filePath = 'http://localhost:6174/api/cover/cover.webp';
+    const filePath = import.meta.env.VITE_API_URL + '/api/cover/cover.webp'
     const imageBlob = await fetchImageAsBlob(filePath);
     await put_image_to_oss(result1, imageBlob)
-    console.log('上传 oos 成功')
 
     // 3.创建图片槽位
     console.log({ "op_image_jobid": result1.data.file_id, "yyb_article_id": now_page_detail_info.yyb_article_id, "team_id": Teamid })
     const result2 = await my_post(`https://yyb-api.yilancloud.com/api/cms/v1/article/redraw/slot/create`, { "op_image_jobid": result1.data.file_id, "yyb_article_id": now_page_detail_info.yyb_article_id, "team_id": Teamid })
-    console.log('result2', result2)
 
     // 4.保存图片槽位
     await my_post(`https://yyb-api.yilancloud.com/api/cms/v1/article/redraw_history/custom_save`, { "slot_id": result2.data.slot_id, "op_image_jobid": result1.data.file_id, "redraw_class_id": now_page_detail_info.contents[1].select_image.redraw_class_id, "yyb_article_id": now_page_detail_info.yyb_article_id, "team_id": Teamid })
