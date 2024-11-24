@@ -12,6 +12,58 @@ let now_page_detail_info = {}
 let change_cover_image_obj = {}
 let save_is_change_cover = false
 
+// ========================================== 公用方法 ===========================================
+// 自定义post
+function my_post(url, data) {
+    return new Promise((resolve, reject) => {
+        GM_xmlhttpRequest({
+            method: 'POST',
+            url: url,
+            headers: {
+                'Content-Type': 'application/json',
+                'Token': token,
+                'Teamid': Teamid
+            },
+            data: JSON.stringify(data),
+            onload: function (response) {
+                console.log('请求成功', response)
+                if (response.status === 200) {
+                    resolve(JSON.parse(response.responseText));
+                } else {
+                    reject(new Error(`Failed to fetch image: ${response.statusText}`));
+                }
+            },
+            onerror: function (error) {
+                reject(new Error(`Network error: ${error}`));
+            }
+        })
+    })
+}
+// 自定义 get
+function my_get(url) {
+    return new Promise((resolve, reject) => {
+        GM_xmlhttpRequest({
+            method: 'GET',
+            url: url,
+            headers: {
+                'Content-Type': 'application/json',
+                'Token': token,
+                'Teamid': Teamid
+            },
+            onload: function (response) {
+                console.log('请求成功', response)
+                if (response.status === 200) {
+                    resolve(JSON.parse(response.responseText));
+                } else {
+                    reject(new Error(`Failed to fetch image: ${response.statusText}`));
+                }
+            },
+            onerror: function (error) {
+                reject(new Error(`Network error: ${error}`));
+            }
+        })
+    })
+}
 interceptRequest()
 // 监听请求
 function interceptRequest() {
@@ -111,32 +163,6 @@ function fetchImageAsBlob(url) {
     });
 }
 
-// 自定义post
-function my_post(url, data) {
-    return new Promise((resolve, reject) => {
-        GM_xmlhttpRequest({
-            method: 'POST',
-            url: url,
-            headers: {
-                'Content-Type': 'application/json',
-                'Token': token,
-                'Teamid': Teamid
-            },
-            data: JSON.stringify(data),
-            onload: function (response) {
-                console.log('请求成功', response)
-                if (response.status === 200) {
-                    resolve(JSON.parse(response.responseText));
-                } else {
-                    reject(new Error(`Failed to fetch image: ${response.statusText}`));
-                }
-            },
-            onerror: function (error) {
-                reject(new Error(`Network error: ${error}`));
-            }
-        })
-    })
-}
 // 上传图片到 oss
 function put_image_to_oss(result1, imageBlob) {
     return new Promise((resolve, reject) => {
@@ -254,32 +280,21 @@ async function listen_table_hover() {
     });
 }
 
-// 注意：getElementsByXPathAsync 函数需要你自己实现或使用现有的库，因为它不是标准的DOM方法。
 // 发送请求，获取详细信息
 async function get_article_detail(article_id, popup) {
-    GM_xmlhttpRequest({
-        method: 'GET',
-        url: `https://yyb-api.yilancloud.com/api/cms/v1/article/recreate/detail?yyb_article_id=${article_id}`,
-        headers: {
-            'Content-Type': 'application/json',
-            'Token': token,
-            'Teamid': Teamid
-        },
-        onload: function (response) {
-            const articles = JSON.parse(response.responseText)['data']['query_articles']
-            let html = '';
-            articles.forEach(article => {
-                // 这里要判断状态
-                if (article.pre_audit_status !== 0 || article.audit_status !== 0) {
-                    html += `
+    const result = await my_get(`https://yyb-api.yilancloud.com/api/cms/v1/article/recreate/detail?yyb_article_id=${article_id}`)
+    const articles = result?.data?.query_articles
+    let html = '';
+    articles.forEach(article => {
+        // 这里要判断状态
+        if (article.pre_audit_status !== 0 || article.audit_status !== 0) {
+            html += `
                         <h2>${article.title}</h2>
                     `;
-                }
-            });
-            if (html === '') html = '<h1>暂无人提交数据</h1>'
-            popup.innerHTML = html
-        },
-    })
+        }
+    });
+    if (html === '') html = '<h1>暂无人提交数据</h1>'
+    popup.innerHTML = html
 }
 
 // ========================================== 标题相关处理 ===========================================

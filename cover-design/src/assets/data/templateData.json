@@ -1,0 +1,804 @@
+{
+  "list": [
+    {
+      "id": 1,
+      "cover": "http://127.0.0.1:5173/cover_images/1.jpeg",
+      "title": "封面模板1",
+      "state": 1,
+      "json": {
+        "tag": "Frame",
+        "fill": [
+          {
+            "type": "solid",
+            "color": "#FFFFFF"
+          }
+        ],
+        "overflow": "hide",
+        "solid": [],
+        "shadow": [],
+        "innerShadow": [],
+        "id": "ff126fb8-17c6-4ef3-8af0-8687b3e15b7c",
+        "name": "workspace",
+        "width": 1242,
+        "height": 1660,
+        "data": {},
+        "states": {},
+        "children": [
+          {
+            "tag": "Image",
+            "url": "http://127.0.0.1:5173/cover_images/1.jpeg",
+            "name": "图层2",
+            "zIndex": 3,
+            "editable": true,
+            "data": {},
+            "states": {}
+          },
+          {
+            "tag": "Text",
+            "width": 1081.8410008487986,
+            "height": 494.9968322823344,
+            "fill": [
+              {
+                "type": "solid",
+                "color": "rgba(0,0,0,1)"
+              }
+            ],
+            "text": "速看：那些2020爆火的小游戏，你玩过几个？",
+            "fontFamily": "方正黑体",
+            "fontSize": 140,
+            "fontWeight": "normal",
+            "letterSpacing": {
+              "type": "percent",
+              "value": null
+            },
+            "lineHeight": {
+              "type": "percent",
+              "value": 1.1
+            },
+            "textAlign": "left",
+            "verticalAlign": "middle",
+            "textOverflow": "show",
+            "name": "图层3",
+            "visible": true,
+            "zIndex": 6,
+            "x": 61.707260947721224,
+            "y": 186.21934077031798,
+            "editable": true,
+            "stroke": [
+              {
+                "type": "solid",
+                "color": "rgba(151,151,151,1)"
+              },
+              {
+                "type": "solid",
+                "color": "rgba(151,151,151,1)"
+              }
+            ],
+            "data": {},
+            "states": {}
+          }
+        ]
+      }
+    },
+    {
+      "id": 2,
+      "cover": "http://127.0.0.1:5173/cover_images/2.jpeg",
+      "title": "封面模板2",
+      "state": 1,
+      "json": {
+        "tag": "Frame",
+        "fill": [
+          {
+            "type": "solid",
+            "color": "#FFFFFF"
+          }
+        ],
+        "overflow": "hide",
+        "solid": [],
+        "shadow": [],
+        "innerShadow": [],
+        "id": "ff126fb8-17c6-4ef3-8af0-8687b3e15b7c",
+        "name": "workspace",
+        "width": 1242,
+        "height": 1660,
+        "data": {},
+        "states": {},
+        "children": [
+          {
+            "tag": "Image",
+            "url": "http://127.0.0.1:5173/cover_images/2.jpeg",
+            "name": "图层2",
+            "zIndex": 3,
+            "editable": true,
+            "data": {},
+            "states": {}
+          },
+          {
+            "tag": "Text",
+            "width": 1005.230719834329,
+            "height": 618.7028605837601,
+            "fill": [
+              {
+                "type": "solid",
+                "color": "rgba(0,0,0,1)"
+              }
+            ],
+            "text": "速看：那些2020爆火的小游戏，你玩过几个？",
+            "fontFamily": "方正黑体",
+            "fontSize": 140,
+            "fontWeight": "normal",
+            "letterSpacing": {
+              "type": "percent",
+              "value": null
+            },
+            "lineHeight": {
+              "type": "percent",
+              "value": 1.1
+            },
+            "textAlign": "left",
+            "verticalAlign": "middle",
+            "textOverflow": "show",
+            "name": "图层3",
+            "visible": true,
+            "zIndex": 6,
+            "x": 157.43927869916078,
+            "y": 396.77687296688373,
+            "editable": true,
+            "stroke": [
+              {
+                "type": "solid",
+                "color": "rgba(151,151,151,1)"
+              },
+              {
+                "type": "solid",
+                "color": "rgba(151,151,151,1)"
+              }
+            ],
+            "data": {},
+            "states": {}
+          }
+        ]
+      }
+    },
+    {
+      "id": 3,
+      "cover": "http://127.0.0.1:5173/cover_images/3.jpeg",
+      "title": "封面模板3",
+      "state": 1,
+      "json": {
+        "tag": "Frame",
+        "fill": [
+          {
+            "type": "solid",
+            "color": "#FFFFFF"
+          }
+        ],
+        "overflow": "hide",
+        "solid": [],
+        "shadow": [],
+        "innerShadow": [],
+        "id": "ff126fb8-17c6-4ef3-8af0-8687b3e15b7c",
+        "name": "workspace",
+        "width": 1242,
+        "height": 1660,
+        "data": {},
+        "states": {},
+        "children": [
+          {
+            "tag": "Image",
+            "url": "http://127.0.0.1:5173/cover_images/3.jpeg",
+            "name": "图层2",
+            "zIndex": 3,
+            "editable": true,
+            "data": {},
+            "states": {}
+          },
+          {
+            "tag": "Text",
+            "width": 781.2624521439935,
+            "height": 618.7028605837601,
+            "fill": [
+              {
+                "type": "solid",
+                "color": "rgba(0, 0, 0, 1)"
+              }
+            ],
+            "text": "速看：那些2020爆火的小游戏，你玩过几个？",
+            "fontFamily": "方正黑体",
+            "fontSize": 140,
+            "fontWeight": "normal",
+            "letterSpacing": {
+              "type": "percent",
+              "value": null
+            },
+            "lineHeight": {
+              "type": "percent",
+              "value": 1.1
+            },
+            "textAlign": "left",
+            "verticalAlign": "middle",
+            "textOverflow": "show",
+            "name": "图层3",
+            "visible": true,
+            "zIndex": 6,
+            "x": 312.75704994245046,
+            "y": 460.7248949000998,
+            "editable": true,
+            "stroke": [
+              {
+                "type": "solid",
+                "color": "rgba(151,151,151,1)"
+              },
+              {
+                "type": "solid",
+                "color": "rgba(151,151,151,1)"
+              }
+            ],
+            "data": {},
+            "states": {}
+          }
+        ]
+      }
+    },
+    {
+      "id": 4,
+      "cover": "http://127.0.0.1:5173/cover_images/4.jpeg",
+      "title": "封面模板4",
+      "state": 1,
+      "json": {
+        "tag": "Frame",
+        "fill": [
+          {
+            "type": "solid",
+            "color": "#FFFFFF"
+          }
+        ],
+        "overflow": "hide",
+        "solid": [],
+        "shadow": [],
+        "innerShadow": [],
+        "id": "ff126fb8-17c6-4ef3-8af0-8687b3e15b7c",
+        "name": "workspace",
+        "width": 1242,
+        "height": 1660,
+        "data": {},
+        "states": {},
+        "children": [
+          {
+            "tag": "Image",
+            "url": "http://127.0.0.1:5173/cover_images/4.jpeg",
+            "name": "图层2",
+            "zIndex": 3,
+            "editable": true,
+            "data": {},
+            "states": {}
+          },
+          {
+            "tag": "Text",
+            "width": 975.2423297070537,
+            "height": 618.7028605837601,
+            "fill": [
+              {
+                "type": "solid",
+                "color": "rgba(0,0,0,1)"
+              }
+            ],
+            "text": "速看：那些2020爆火的小游戏，你玩过几个？",
+            "fontFamily": "方正黑体",
+            "fontSize": 140,
+            "fontWeight": "normal",
+            "letterSpacing": {
+              "type": "percent",
+              "value": null
+            },
+            "lineHeight": {
+              "type": "percent",
+              "value": 1.1
+            },
+            "textAlign": "left",
+            "verticalAlign": "middle",
+            "textOverflow": "show",
+            "name": "图层3",
+            "visible": true,
+            "zIndex": 6,
+            "x": 183.36755746053737,
+            "y": 348.4872058091583,
+            "editable": true,
+            "stroke": [
+              {
+                "type": "solid",
+                "color": "rgba(151,151,151,1)"
+              },
+              {
+                "type": "solid",
+                "color": "rgba(151,151,151,1)"
+              }
+            ],
+            "data": {},
+            "states": {}
+          }
+        ]
+      }
+    },
+    {
+      "id": 5,
+      "cover": "http://127.0.0.1:5173/cover_images/5.jpeg",
+      "title": "封面模板5",
+      "state": 1,
+      "json": {
+        "tag": "Frame",
+        "fill": [
+          {
+            "type": "solid",
+            "color": "#FFFFFF"
+          }
+        ],
+        "overflow": "hide",
+        "solid": [],
+        "shadow": [],
+        "innerShadow": [],
+        "id": "ff126fb8-17c6-4ef3-8af0-8687b3e15b7c",
+        "name": "workspace",
+        "width": 1242,
+        "height": 1660,
+        "data": {},
+        "states": {},
+        "children": [
+          {
+            "tag": "Image",
+            "url": "http://127.0.0.1:5173/cover_images/5.jpeg",
+            "name": "图层2",
+            "zIndex": 3,
+            "editable": true,
+            "data": {},
+            "states": {}
+          },
+          {
+            "tag": "Text",
+            "width": 1005.230719834329,
+            "height": 618.7028605837601,
+            "fill": [
+              {
+                "type": "solid",
+                "color": "rgba(0,0,0,1)"
+              }
+            ],
+            "text": "速看：那些2020爆火的小游戏，你玩过几个？",
+            "fontFamily": "庞门正道标题体",
+            "fontSize": 123,
+            "fontWeight": "normal",
+            "letterSpacing": {
+              "type": "percent",
+              "value": null
+            },
+            "lineHeight": {
+              "type": "percent",
+              "value": 1.1
+            },
+            "textAlign": "left",
+            "verticalAlign": "middle",
+            "textOverflow": "show",
+            "name": "图层3",
+            "visible": true,
+            "zIndex": 6,
+            "x": 133.37034744071724,
+            "y": 196.05304253657408,
+            "editable": true,
+            "stroke": [
+              {
+                "type": "solid",
+                "color": "rgba(151,151,151,1)"
+              },
+              {
+                "type": "solid",
+                "color": "rgba(151,151,151,1)"
+              }
+            ],
+            "data": {},
+            "states": {}
+          }
+        ]
+      }
+    },
+    {
+      "id": 6,
+      "cover": "http://127.0.0.1:5173/cover_images/6.jpeg",
+      "title": "封面模板6",
+      "state": 1,
+      "json": {
+        "tag": "Frame",
+        "fill": [
+          {
+            "type": "solid",
+            "color": "#FFFFFF"
+          }
+        ],
+        "overflow": "hide",
+        "solid": [],
+        "shadow": [],
+        "innerShadow": [],
+        "id": "ff126fb8-17c6-4ef3-8af0-8687b3e15b7c",
+        "name": "workspace",
+        "width": 1242,
+        "height": 1660,
+        "data": {},
+        "states": {},
+        "children": [
+          {
+            "tag": "Image",
+            "url": "http://127.0.0.1:5173/cover_images/6.jpeg",
+            "name": "图层2",
+            "zIndex": 3,
+            "editable": true,
+            "data": {},
+            "states": {}
+          },
+          {
+            "tag": "Text",
+            "width": 944.7626780921148,
+            "height": 618.7028605837601,
+            "fill": [
+              {
+                "type": "solid",
+                "color": "rgba(0,0,0,1)"
+              }
+            ],
+            "text": "速看：那些2020爆火的小游戏，你玩过几个？",
+            "fontFamily": "庞门正道标题体",
+            "fontSize": 124,
+            "fontWeight": "normal",
+            "letterSpacing": {
+              "type": "percent",
+              "value": null
+            },
+            "lineHeight": {
+              "type": "percent",
+              "value": 1.1
+            },
+            "textAlign": "center",
+            "verticalAlign": "middle",
+            "textOverflow": "show",
+            "name": "图层3",
+            "visible": true,
+            "zIndex": 6,
+            "x": 151.23488355686493,
+            "y": 468.46497206964614,
+            "editable": true,
+            "stroke": [
+              {
+                "type": "solid",
+                "color": "rgba(151,151,151,1)"
+              },
+              {
+                "type": "solid",
+                "color": "rgba(151,151,151,1)"
+              }
+            ],
+            "data": {},
+            "states": {}
+          }
+        ]
+      }
+    },
+    {
+      "id": 7,
+      "cover": "http://127.0.0.1:5173/cover_images/7.jpeg",
+      "title": "封面模板7",
+      "state": 1,
+      "json": {
+        "tag": "Frame",
+        "fill": [
+          {
+            "type": "solid",
+            "color": "#FFFFFF"
+          }
+        ],
+        "overflow": "hide",
+        "solid": [],
+        "shadow": [],
+        "innerShadow": [],
+        "id": "ff126fb8-17c6-4ef3-8af0-8687b3e15b7c",
+        "name": "workspace",
+        "width": 1242,
+        "height": 1660,
+        "data": {},
+        "states": {},
+        "children": [
+          {
+            "tag": "Image",
+            "url": "http://127.0.0.1:5173/cover_images/7.jpeg",
+            "name": "图层2",
+            "zIndex": 3,
+            "editable": true,
+            "data": {},
+            "states": {}
+          },
+          {
+            "tag": "Text",
+            "width": 1005.230719834329,
+            "height": 618.7028605837601,
+            "fill": [
+              {
+                "type": "solid",
+                "color": "rgba(0,0,0,1)"
+              }
+            ],
+            "text": "速看：那些2020爆火的小游戏，你玩过几个？",
+            "fontFamily": "站酷高端黑",
+            "fontSize": 144,
+            "fontWeight": "normal",
+            "letterSpacing": {
+              "type": "percent",
+              "value": null
+            },
+            "lineHeight": {
+              "type": "percent",
+              "value": 1.1
+            },
+            "textAlign": "center",
+            "verticalAlign": "middle",
+            "textOverflow": "show",
+            "name": "图层3",
+            "visible": true,
+            "zIndex": 6,
+            "x": 130.1779546292838,
+            "y": 119.48754466190292,
+            "editable": true,
+            "stroke": [
+              {
+                "type": "solid",
+                "color": "rgba(151,151,151,1)"
+              },
+              {
+                "type": "solid",
+                "color": "rgba(151,151,151,1)"
+              }
+            ],
+            "data": {},
+            "states": {}
+          }
+        ]
+      }
+    },
+    {
+      "id": 8,
+      "cover": "http://127.0.0.1:5173/cover_images/8.jpeg",
+      "title": "封面模板8",
+      "state": 1,
+      "json": {
+        "tag": "Frame",
+        "fill": [
+          {
+            "type": "solid",
+            "color": "#FFFFFF"
+          }
+        ],
+        "overflow": "hide",
+        "solid": [],
+        "shadow": [],
+        "innerShadow": [],
+        "id": "ff126fb8-17c6-4ef3-8af0-8687b3e15b7c",
+        "name": "workspace",
+        "width": 1242,
+        "height": 1660,
+        "data": {},
+        "states": {},
+        "children": [
+          {
+            "tag": "Image",
+            "url": "http://127.0.0.1:5173/cover_images/8.jpeg",
+            "name": "图层2",
+            "zIndex": 3,
+            "editable": true,
+            "data": {},
+            "states": {}
+          },
+          {
+            "tag": "Text",
+            "width": 1127.6403572507827,
+            "height": 618.7028605837601,
+            "fill": [
+              {
+                "type": "solid",
+                "color": "rgba(0,0,0,1)"
+              }
+            ],
+            "text": "速看：那些2020爆火的小游戏，你玩过几个？",
+            "fontFamily": "锐字真言体",
+            "fontSize": 123,
+            "fontWeight": "normal",
+            "letterSpacing": {
+              "type": "percent",
+              "value": null
+            },
+            "lineHeight": {
+              "type": "percent",
+              "value": 1.2
+            },
+            "textAlign": "center",
+            "verticalAlign": "middle",
+            "textOverflow": "show",
+            "name": "图层3",
+            "visible": true,
+            "zIndex": 6,
+            "x": 49.159806287329275,
+            "y": 139.48656448867695,
+            "editable": true,
+            "stroke": [
+              {
+                "type": "solid",
+                "color": "rgba(151,151,151,1)"
+              },
+              {
+                "type": "solid",
+                "color": "rgba(151,151,151,1)"
+              }
+            ],
+            "data": {},
+            "states": {}
+          }
+        ]
+      }
+    },
+    {
+      "id": 9,
+      "cover": "http://127.0.0.1:5173/cover_images/9.jpeg",
+      "title": "封面模板9",
+      "state": 1,
+      "json": {
+        "tag": "Frame",
+        "fill": [
+          {
+            "type": "solid",
+            "color": "#FFFFFF"
+          }
+        ],
+        "overflow": "hide",
+        "solid": [],
+        "shadow": [],
+        "innerShadow": [],
+        "id": "ff126fb8-17c6-4ef3-8af0-8687b3e15b7c",
+        "name": "workspace",
+        "width": 1242,
+        "height": 1660,
+        "data": {},
+        "states": {},
+        "children": [
+          {
+            "tag": "Image",
+            "url": "http://127.0.0.1:5173/cover_images/9.jpeg",
+            "name": "图层2",
+            "zIndex": 3,
+            "editable": true,
+            "data": {},
+            "states": {}
+          },
+          {
+            "tag": "Text",
+            "width": 981.9606936371232,
+            "height": 594.1415151828251,
+            "fill": [
+              {
+                "type": "solid",
+                "color": "rgba(0,0,0,1)"
+              }
+            ],
+            "text": "速看：那些2020爆火的小游戏，你玩过几个？",
+            "fontFamily": "庞门正道粗书体",
+            "fontSize": 132,
+            "fontWeight": "normal",
+            "letterSpacing": {
+              "type": "percent",
+              "value": null
+            },
+            "lineHeight": {
+              "type": "percent",
+              "value": 1.1
+            },
+            "textAlign": "center",
+            "verticalAlign": "middle",
+            "textOverflow": "show",
+            "name": "图层3",
+            "visible": true,
+            "zIndex": 6,
+            "x": 155.55353540066818,
+            "y": 512.0640256705954,
+            "editable": true,
+            "stroke": [
+              {
+                "type": "solid",
+                "color": "rgba(151,151,151,1)"
+              },
+              {
+                "type": "solid",
+                "color": "rgba(151,151,151,1)"
+              }
+            ],
+            "data": {},
+            "states": {}
+          }
+        ]
+      }
+    },
+    {
+      "id": 10,
+      "cover": "http://127.0.0.1:5173/cover_images/10.jpeg",
+      "title": "封面模板10",
+      "state": 1,
+      "json": {
+        "tag": "Frame",
+        "fill": [
+          {
+            "type": "solid",
+            "color": "#FFFFFF"
+          }
+        ],
+        "overflow": "hide",
+        "solid": [],
+        "shadow": [],
+        "innerShadow": [],
+        "id": "ff126fb8-17c6-4ef3-8af0-8687b3e15b7c",
+        "name": "workspace",
+        "width": 1242,
+        "height": 1660,
+        "data": {},
+        "states": {},
+        "children": [
+          {
+            "tag": "Image",
+            "url": "http://127.0.0.1:5173/cover_images/10.jpeg",
+            "name": "图层2",
+            "zIndex": 3,
+            "editable": true,
+            "data": {},
+            "states": {}
+          },
+          {
+            "tag": "Text",
+            "width": 1005.230719834329,
+            "height": 618.7028605837601,
+            "fill": [
+              {
+                "type": "solid",
+                "color": "rgba(0,0,0,1)"
+              }
+            ],
+            "text": "速看：那些2020爆火的小游戏，你玩过几个？",
+            "fontFamily": "微软雅黑",
+            "fontSize": 142,
+            "fontWeight": "bold",
+            "letterSpacing": {
+              "type": "percent",
+              "value": null
+            },
+            "lineHeight": {
+              "type": "percent",
+              "value": 1.1
+            },
+            "textAlign": "center",
+            "verticalAlign": "middle",
+            "textOverflow": "show",
+            "name": "图层3",
+            "visible": true,
+            "zIndex": 6,
+            "x": 114.03606115347677,
+            "y": 382.58238982286355,
+            "editable": true,
+            "stroke": [
+              {
+                "type": "solid",
+                "color": "rgba(151,151,151,1)"
+              },
+              {
+                "type": "solid",
+                "color": "rgba(151,151,151,1)"
+              }
+            ],
+            "data": {},
+            "states": {}
+          }
+        ]
+      }
+    }
+  ]
+}
