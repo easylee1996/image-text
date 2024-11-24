@@ -11,15 +11,17 @@ let Teamid = Cookies.get('TeamId')
 let now_page_detail_info = {}
 let change_cover_image_obj = {}
 let save_is_change_cover = false
+let change_content = ""
+let save_is_change_content = false
 
 // ========================================== 公用方法 ===========================================
 // 自定义post
-function my_post(url, data) {
+function my_post(url, data, headers = null) {
     return new Promise((resolve, reject) => {
         GM_xmlhttpRequest({
             method: 'POST',
             url: url,
-            headers: {
+            headers: headers ? headers : {
                 'Content-Type': 'application/json',
                 'Token': token,
                 'Teamid': Teamid
@@ -123,10 +125,18 @@ function interceptRequest() {
     XMLHttpRequest.prototype.send = function () {
         if (this._url.includes('/article/recreate/update')) {
             let data = JSON.parse(arguments[0])
+            // 修改标题
             data.title = now_title.value
+            // 修改封面
             if (save_is_change_cover) {
                 data.contents[1] = change_cover_image_obj
                 save_is_change_cover = false
+            }
+            // 修改内容
+            if (save_is_change_content) {
+                data.contents[0].content = change_content
+                data.contents[0].content_html = change_content
+                save_is_change_content = false
             }
             arguments[0] = JSON.stringify(data)
             console.log('最终参数', arguments[0])
@@ -142,6 +152,7 @@ function interceptRequest() {
  * @param url 图片地址或本地路径
  */
 // 将图片转为 Blob
+
 function fetchImageAsBlob(url) {
     return new Promise((resolve, reject) => {
         GM_xmlhttpRequest({
@@ -185,7 +196,9 @@ function put_image_to_oss(result1, imageBlob) {
 }
 
 // 改变封面
+const cover_loading = ref(false)
 async function change_cover() {
+    cover_loading.value = true
     ElMessage.warning('正在修改封面...')
     // 0.首先创建封面图片
     const result0 = await my_post(import.meta.env.VITE_API_URL + '/api/template/submit_title', { "title": now_title.value })
@@ -226,9 +239,7 @@ async function change_cover() {
     const save_el = (await getElementsByXPathAsync("//button/span[text()='保 存']/parent::button"))[0]
     save_el.click()
 
-    // 暂时不刷新，测试一下是否有问题再说
-    // await getElementsByXPathAsync("//div[@class='ant-message']//span[text()='保存成功']")
-    // window.location.reload()
+    cover_loading.value = false
 
 }
 // ========================================== 列表相关处理 ===========================================
@@ -302,32 +313,22 @@ const task_titles = ref([]) // 当前任务AI生成标题列表
 const now_title = ref('')
 const task_titles_loading = ref(false) // 当前任务AI生成标题列表加载状态
 // 通过AI获取延伸话题
-function getTitles() {
+async function getTitles() {
     task_titles_loading.value = true
     task_titles.value = []
-    GM_xmlhttpRequest({
-        method: 'POST',
-        url: 'https://api.coze.cn/v1/workflow/run',
-        headers: {
-            'Content-Type': 'application/json',
-            Authorization: 'Bearer pat_hZYDpQzgCRxVqb8LHN8pTb4w2R9T00bGjUQr2vfiBVf8S3dk97Pjl1kKZSShBz4I',
+    const result = await my_post('https://api.coze.cn/v1/workflow/run', {
+        workflow_id: '7440838063737225243',
+        parameters: {
+            BOT_USER_INPUT: now_task_keyword.value,
         },
-        data: JSON.stringify({
-            workflow_id: '7438579954335989823',
-            parameters: {
-                BOT_USER_INPUT: now_task_keyword.value,
-            },
-        }),
-        onload: function (res) {
-            let parse_res = JSON.parse(res.responseText)
-            task_titles.value = JSON.parse(parse_res.data).output
-            task_titles_loading.value = false
-        },
-        onerror: function (err) {
-            console.log(err)
-            task_titles_loading.value = false
-        },
+    }, {
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer pat_gmrxgGDTRBV2cnGPx9vrhOHx4IMiShHUBKTXkVn8ql66xMuG7219YySM8P26rSR8',
     })
+
+    task_titles.value = JSON.parse(result.data).output
+    task_titles_loading.value = false
+
 }
 
 // 点击修改标题
@@ -354,6 +355,34 @@ async function replaceTitleElement() {
         originElement.style.display = 'none'
         originElement.parentNode.appendChild(input)
     }
+
+}
+// ========================================== 内容相关处理 ===========================================
+// 通过AI获取内容
+const content_loading = ref(false)
+async function changeContent() {
+    content_loading.value = true
+    let need_title = ''
+    try {
+        need_title = now_title.value.split('：')[1];
+    } catch {
+        need_title = now_title.value
+    }
+    const result = await my_post('https://api.coze.cn/v1/workflow/run', {
+        workflow_id: '7440845043767722024',
+        parameters: {
+            BOT_USER_INPUT: need_title,
+        },
+    }, {
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer pat_gmrxgGDTRBV2cnGPx9vrhOHx4IMiShHUBKTXkVn8ql66xMuG7219YySM8P26rSR8',
+    })
+
+    change_content = JSON.parse(result.data).output
+    content_loading.value = false
+    save_is_change_content = true
+    const save_el = (await getElementsByXPathAsync("//button/span[text()='保 存']/parent::button"))[0]
+    save_el.click()
 
 }
 // ========================================== 保存、审核相关处理 ===========================================
@@ -385,8 +414,10 @@ async function listen_submit_click() {
                 {{ item }}
             </div>
         </div>
-        <el-button type="danger">获取内容</el-button>
-        <el-button type="danger" @click="change_cover()">修改封面</el-button>
+        <el-button type="primary" @click="changeContent()" v-loading="content_loading"
+            :disabled="content_loading">获取内容</el-button>
+        <el-button type="danger" @click="change_cover()" v-loading="cover_loading"
+            :disabled="cover_loading">修改封面</el-button>
     </div>
     <!-- <el-dialog v-model="dialogVisible" title="" width="100%" :destroy-on-close="true">
         <div class="dialog-content"></div>
