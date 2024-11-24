@@ -54,6 +54,16 @@ function interceptRequest() {
                 }
             })
         }
+        // 列表页面
+        if (url.includes('/article/recreate/tasks')) {
+            this.addEventListener('readystatechange', function () {
+
+                if (this.readyState === 4) {
+                    // 添加事件
+                    listen_table_hover()
+                }
+            })
+        }
         originOpen.apply(this, arguments)
     }
     // 提交劫持
@@ -196,49 +206,55 @@ async function change_cover() {
 
 }
 // ========================================== 列表相关处理 ===========================================
-listen_table_hover()
+
 async function listen_table_hover() {
-    const trs = await getElementsByXPathAsync("//tr[contains(@class,'ant-table-row')]")
+    // 移除之前可能绑定的事件监听器（如果存在）
+    const trs = await getElementsByXPathAsync("//tr[contains(@class,'ant-table-row')]");
     trs.forEach(tr => {
+        const elm = tr.querySelector('td:nth-child(2)');
 
-        // 弹窗显示详情信息
-        const elm = tr.querySelector('td:nth-child(2)')
-        const articel_id = tr.querySelector('td:nth-child(1)').innerText
-        const popup = document.createElement('div')
-        popup.className = 'popup'
-        popup.innerHTML = `<h1>正在获取数据中...</h1>`
-        document.body.appendChild(popup)
-        elm.addEventListener('mouseenter', function (event) {
-            get_article_detail(articel_id, popup)
+        // 尝试移除先前可能绑定的事件监听器
+        if (elm._handleMouseEnter) {
+            elm.removeEventListener('mouseenter', elm._handleMouseEnter);
+        }
+        if (elm._handleMouseLeave) {
+            elm.removeEventListener('mouseleave', elm._handleMouseLeave);
+        }
 
-            popup.classList.add('show')
-            const rect = elm.getBoundingClientRect()
-            popup.style.top = `${rect.top + window.scrollY}px`
-            popup.style.left = `${rect.right + window.scrollX}px`
-        })
-        elm.addEventListener('mouseleave', function (event) {
-            popup.classList.remove('show')
-        })
+        // 定义事件处理函数
+        function handleMouseEnter(event) {
+            const articel_id = tr.querySelector('td:nth-child(1)').innerText;
+            const popup = document.createElement('div');
+            popup.className = 'popup';
+            popup.innerHTML = `<h1>正在获取数据中...</h1>`;
+            document.body.appendChild(popup);
 
-        // 新标签页进入详情页面
-        const enter_elm = tr.querySelector('td:nth-child(6) > div > button:nth-child(1) > span')
-        if (enter_elm) {
-            // 直接变更点击的方法没用，因为是框架进行了事件管理维护，可用的方法是在上层节点禁用下层的点击事件
-            enter_elm.parentNode.addEventListener('click', function (event) {
-                if (event.target === enter_elm) {
-                    event.stopPropagation();
-                    event.preventDefault();
-
-                    const url = `https://ai.openvam.com/vam/ai/tools/text/secondCreation/ql3v5Roy7RaK?secondCreationType=poster&yybArticleId=${articel_id}`;
-
-                    window.open(url, '_blank');
-                }
+            get_article_detail(articel_id, popup).then(() => {
+                popup.classList.add('show');
+                const rect = elm.getBoundingClientRect();
+                popup.style.top = `${rect.top + window.scrollY}px`;
+                popup.style.left = `${rect.right + window.scrollX}px`;
             });
         }
 
+        function handleMouseLeave(event) {
+            const popups = document.querySelectorAll('.popup.show');
+            popups.forEach(popup => {
+                popup.classList.remove('show');
+            });
+        }
 
-    })
+        // 保存事件处理函数的引用到元素上，以便之后可以移除
+        elm._handleMouseEnter = handleMouseEnter;
+        elm._handleMouseLeave = handleMouseLeave;
+
+        // 绑定新的事件监听器
+        elm.addEventListener('mouseenter', handleMouseEnter);
+        elm.addEventListener('mouseleave', handleMouseLeave);
+    });
 }
+
+// 注意：getElementsByXPathAsync 函数需要你自己实现或使用现有的库，因为它不是标准的DOM方法。
 // 发送请求，获取详细信息
 async function get_article_detail(article_id, popup) {
     GM_xmlhttpRequest({
@@ -253,12 +269,14 @@ async function get_article_detail(article_id, popup) {
             const articles = JSON.parse(response.responseText)['data']['query_articles']
             let html = '';
             articles.forEach(article => {
-                // TODO：这里要判断状态，现在没有数据，后面再判断
-                // if ()
-                html += `
+                // 这里要判断状态
+                if (article.pre_audit_status !== 0 || article.audit_status !== 0) {
+                    html += `
                         <h2>${article.title}</h2>
-                `;
+                    `;
+                }
             });
+            if (html === '') html = '<h1>暂无人提交数据</h1>'
             popup.innerHTML = html
         },
     })
