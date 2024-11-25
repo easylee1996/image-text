@@ -264,12 +264,12 @@ async function change_cover() {
 // 列表获取文章详情内容
 let globalPopup = null
 async function listen_table_hover() {
-    // 移除之前可能绑定的事件监听器（如果存在）
+    // 等待列表元素加载完成
     const trs = await getElementsByXPathAsync("//tr[contains(@class,'ant-table-row')]")
-    trs.forEach(tr => {
+    // 获取详情弹窗
+    function get_article_pop(tr) {
         const elm = tr.querySelector('td:nth-child(2)')
 
-        // 尝试移除先前可能绑定的事件监听器
         if (elm._handleMouseEnter) {
             elm.removeEventListener('mouseenter', elm._handleMouseEnter)
         }
@@ -277,8 +277,7 @@ async function listen_table_hover() {
             elm.removeEventListener('mouseleave', elm._handleMouseLeave)
         }
 
-        // 定义事件处理函数
-        function handleMouseEnter(event) {
+        async function handleMouseEnter(event) {
             if (globalPopup) {
                 globalPopup.classList.remove('show')
                 document.body.removeChild(globalPopup)
@@ -289,13 +288,11 @@ async function listen_table_hover() {
             globalPopup.className = 'popup'
             globalPopup.innerHTML = `<h1>正在获取数据中...</h1>`
             document.body.appendChild(globalPopup)
-
-            get_article_detail(articel_id, globalPopup).then(() => {
-                globalPopup.classList.add('show')
-                const rect = elm.getBoundingClientRect()
-                globalPopup.style.top = `${rect.top + window.scrollY}px`
-                globalPopup.style.left = `${rect.right + window.scrollX}px`
-            })
+            globalPopup.classList.add('show')
+            const rect = elm.getBoundingClientRect()
+            globalPopup.style.top = `${rect.top + window.scrollY}px`
+            globalPopup.style.left = `${rect.right + window.scrollX}px`
+            await get_article_detail(articel_id, globalPopup)
         }
 
         function handleMouseLeave(event) {
@@ -304,13 +301,36 @@ async function listen_table_hover() {
             }
         }
 
-        // 保存事件处理函数的引用到元素上，以便之后可以移除
         elm._handleMouseEnter = handleMouseEnter
         elm._handleMouseLeave = handleMouseLeave
 
-        // 绑定新的事件监听器
         elm.addEventListener('mouseenter', handleMouseEnter)
         elm.addEventListener('mouseleave', handleMouseLeave)
+    }
+    // 增加跳转小红书按钮
+    function add_goto_xhs_button(tr) {
+        const elm = tr.querySelector('td:nth-child(6) > div')
+
+        // 检查按钮是否已经存在
+        const existingButton = elm.querySelector('.goto_xhs_button')
+        if (existingButton) {
+            return
+        }
+
+        const button = document.createElement('button')
+        button.innerText = '小红书'
+        button.className = 'goto_xhs_button'
+        button.addEventListener('click', () => {
+            let query = tr.querySelector('td:nth-child(2) > div').innerText
+            query = query.replace('任务query：', '')
+            query = query.replace('"', '')
+            goto_xhs(query)
+        })
+        elm.appendChild(button)
+    }
+    trs.forEach(tr => {
+        get_article_pop(tr)
+        add_goto_xhs_button(tr)
     })
 }
 
@@ -431,6 +451,15 @@ async function listen_submit_click() {
         }
     })
 }
+// ========================================== 其他功能 ===========================================
+// 详情页跳转到小红书
+function goto_xhs(keyword) {
+    if (keyword) {
+        window.open(`https://www.xiaohongshu.com/search_result?keyword=${keyword}`)
+    } else {
+        window.open(`https://www.xiaohongshu.com/search_result?keyword=${now_task_keyword.value}`)
+    }
+}
 </script>
 
 <template>
@@ -443,6 +472,7 @@ async function listen_submit_click() {
         </div>
         <el-button type="primary" @click="changeContent()" v-loading="content_loading" :disabled="content_loading">获取内容</el-button>
         <el-button type="danger" @click="change_cover()" v-loading="cover_loading" :disabled="cover_loading">修改封面</el-button>
+        <el-button type="warning" @click="goto_xhs()">跳转到小红书</el-button>
     </div>
     <!-- <el-dialog v-model="dialogVisible" title="" width="100%" :destroy-on-close="true">
         <div class="dialog-content"></div>
@@ -526,5 +556,11 @@ async function listen_submit_click() {
 
 .popup.show {
     display: block;
+}
+.goto_xhs_button {
+    border: none;
+    background: none;
+    cursor: pointer;
+    color: red;
 }
 </style>
