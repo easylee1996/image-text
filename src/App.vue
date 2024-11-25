@@ -200,13 +200,14 @@ async function change_cover() {
     ElMessage.warning('正在修改封面...')
     // 0.首先创建封面图片
     const result0 = await my_post(import.meta.env.VITE_API_URL + '/api/template/submit_title', { title: now_title.value })
+    console.log(result0)
 
     // 1.获取阿里云 oss 地址
-    const result1 = await my_post(`https://yyb-api.yilancloud.com/api/ai/v1/draw/image/upload`, { file_name: 'cover.webp', content_type: 'image/webp' })
+    const result1 = await my_post(`https://yyb-api.yilancloud.com/api/ai/v1/draw/image/upload`, { file_name: result0.filename, content_type: 'image/webp' })
 
     // 2.上传到阿里云 oss
     // const filePath = 'file:///Users/miao/Downloads/cover.webp';
-    const filePath = import.meta.env.VITE_API_URL + '/api/cover/cover.webp'
+    const filePath = import.meta.env.VITE_API_URL + '/api/cover/' + result0.filename
     const imageBlob = await fetchImageAsBlob(filePath)
     await put_image_to_oss(result1, imageBlob)
 
