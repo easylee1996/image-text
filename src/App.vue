@@ -2,7 +2,7 @@
 import { GM_xmlhttpRequest, GM_getResourceURL } from '$'
 import { ref, h, nextTick } from 'vue'
 import { getElementsByXPathAsync } from './utils/utils'
-import Cookies from 'js-cookie';
+import Cookies from 'js-cookie'
 
 // 变量
 const now_task_keyword = ref('') // 当前任务关键词
@@ -11,7 +11,7 @@ let Teamid = Cookies.get('TeamId')
 let now_page_detail_info = {}
 let change_cover_image_obj = {}
 let save_is_change_cover = false
-let change_content = ""
+let change_content = ''
 let save_is_change_content = false
 
 // ========================================== 公用方法 ===========================================
@@ -21,23 +21,25 @@ function my_post(url, data, headers = null) {
         GM_xmlhttpRequest({
             method: 'POST',
             url: url,
-            headers: headers ? headers : {
-                'Content-Type': 'application/json',
-                'Token': token,
-                'Teamid': Teamid
-            },
+            headers: headers
+                ? headers
+                : {
+                      'Content-Type': 'application/json',
+                      Token: token,
+                      Teamid: Teamid,
+                  },
             data: JSON.stringify(data),
             onload: function (response) {
                 console.log('请求成功', response)
                 if (response.status === 200) {
-                    resolve(JSON.parse(response.responseText));
+                    resolve(JSON.parse(response.responseText))
                 } else {
-                    reject(new Error(`Failed to fetch image: ${response.statusText}`));
+                    reject(new Error(`Failed to fetch image: ${response.statusText}`))
                 }
             },
             onerror: function (error) {
-                reject(new Error(`Network error: ${error}`));
-            }
+                reject(new Error(`Network error: ${error}`))
+            },
         })
     })
 }
@@ -49,20 +51,20 @@ function my_get(url) {
             url: url,
             headers: {
                 'Content-Type': 'application/json',
-                'Token': token,
-                'Teamid': Teamid
+                Token: token,
+                Teamid: Teamid,
             },
             onload: function (response) {
                 console.log('请求成功', response)
                 if (response.status === 200) {
-                    resolve(JSON.parse(response.responseText));
+                    resolve(JSON.parse(response.responseText))
                 } else {
-                    reject(new Error(`Failed to fetch image: ${response.statusText}`));
+                    reject(new Error(`Failed to fetch image: ${response.statusText}`))
                 }
             },
             onerror: function (error) {
-                reject(new Error(`Network error: ${error}`));
-            }
+                reject(new Error(`Network error: ${error}`))
+            },
         })
     })
 }
@@ -78,9 +80,7 @@ function interceptRequest() {
         // 详细页面
         if (url.includes('article/recreate/detail')) {
             this.addEventListener('readystatechange', function () {
-
                 if (this.readyState === 4) {
-
                     const res = JSON.parse(this.responseText) // 当前 xhr 对象上定义 responseText
                     Object.defineProperty(this, 'responseText', {
                         writable: true,
@@ -100,7 +100,6 @@ function interceptRequest() {
 
                     now_page_detail_info = res.data
 
-
                     // 监听点击审核按钮
                     listen_submit_click()
 
@@ -111,7 +110,6 @@ function interceptRequest() {
         // 列表页面
         if (url.includes('/article/recreate/tasks')) {
             this.addEventListener('readystatechange', function () {
-
                 if (this.readyState === 4) {
                     // 添加事件
                     listen_table_hover()
@@ -162,16 +160,16 @@ function fetchImageAsBlob(url) {
             onload: function (response) {
                 console.log('图片请求成功', response)
                 if (response.status === 200) {
-                    resolve(response.response);
+                    resolve(response.response)
                 } else {
-                    reject(new Error(`Failed to fetch image: ${response.statusText}`));
+                    reject(new Error(`Failed to fetch image: ${response.statusText}`))
                 }
             },
             onerror: function (error) {
-                reject(new Error(`Network error: ${error}`));
-            }
-        });
-    });
+                reject(new Error(`Network error: ${error}`))
+            },
+        })
+    })
 }
 
 // 上传图片到 oss
@@ -189,8 +187,8 @@ function put_image_to_oss(result1, imageBlob) {
                 resolve()
             },
             onerror: function (error) {
-                reject(new Error(`Network error: ${error}`));
-            }
+                reject(new Error(`Network error: ${error}`))
+            },
         })
     })
 }
@@ -201,37 +199,57 @@ async function change_cover() {
     cover_loading.value = true
     ElMessage.warning('正在修改封面...')
     // 0.首先创建封面图片
-    const result0 = await my_post(import.meta.env.VITE_API_URL + '/api/template/submit_title', { "title": now_title.value })
+    const result0 = await my_post(import.meta.env.VITE_API_URL + '/api/template/submit_title', { title: now_title.value })
 
     // 1.获取阿里云 oss 地址
-    const result1 = await my_post(`https://yyb-api.yilancloud.com/api/ai/v1/draw/image/upload`, { "file_name": "cover.webp", "content_type": "image/webp" })
-
+    const result1 = await my_post(`https://yyb-api.yilancloud.com/api/ai/v1/draw/image/upload`, { file_name: 'cover.webp', content_type: 'image/webp' })
 
     // 2.上传到阿里云 oss
     // const filePath = 'file:///Users/miao/Downloads/cover.webp';
     const filePath = import.meta.env.VITE_API_URL + '/api/cover/cover.webp'
-    const imageBlob = await fetchImageAsBlob(filePath);
+    const imageBlob = await fetchImageAsBlob(filePath)
     await put_image_to_oss(result1, imageBlob)
 
     // 3.创建图片槽位
-    console.log({ "op_image_jobid": result1.data.file_id, "yyb_article_id": now_page_detail_info.yyb_article_id, "team_id": Teamid })
-    const result2 = await my_post(`https://yyb-api.yilancloud.com/api/cms/v1/article/redraw/slot/create`, { "op_image_jobid": result1.data.file_id, "yyb_article_id": now_page_detail_info.yyb_article_id, "team_id": Teamid })
+    console.log({ op_image_jobid: result1.data.file_id, yyb_article_id: now_page_detail_info.yyb_article_id, team_id: Teamid })
+    const result2 = await my_post(`https://yyb-api.yilancloud.com/api/cms/v1/article/redraw/slot/create`, {
+        op_image_jobid: result1.data.file_id,
+        yyb_article_id: now_page_detail_info.yyb_article_id,
+        team_id: Teamid,
+    })
 
     // 4.保存图片槽位
     // 获取封面的 redraw_id
-    let redraw_id = ""
-    let redraw_class_id = ""
+    let redraw_id = ''
+    let redraw_class_id = ''
     for (const item of now_page_detail_info.contents) {
         if (item.tp === 2 && item?.select_image) {
             redraw_id = item.select_image.redraw_id
             redraw_class_id = item.select_image.redraw_class_id
         }
     }
-    await my_post(`https://yyb-api.yilancloud.com/api/cms/v1/article/redraw_history/custom_save`, { "slot_id": result2.data.slot_id, "op_image_jobid": result1.data.file_id, "redraw_class_id": redraw_class_id, "yyb_article_id": now_page_detail_info.yyb_article_id, "team_id": Teamid })
+    await my_post(`https://yyb-api.yilancloud.com/api/cms/v1/article/redraw_history/custom_save`, {
+        slot_id: result2.data.slot_id,
+        op_image_jobid: result1.data.file_id,
+        redraw_class_id: redraw_class_id,
+        yyb_article_id: now_page_detail_info.yyb_article_id,
+        team_id: Teamid,
+    })
 
     // 5.组装上传的图片对象
     change_cover_image_obj = {
-        "tp": 2, "content": "", "content_html": "", "method_id": "0", "op_image_jobid": result1.data.file_id, "slot_id": result2.data.slot_id, "redraw_id": redraw_id, "redraw_class_id": redraw_class_id, "redraw_class_name": "自定义", "design_id": "", "template_id": "", "template_file_id": ""
+        tp: 2,
+        content: '',
+        content_html: '',
+        method_id: '0',
+        op_image_jobid: result1.data.file_id,
+        slot_id: result2.data.slot_id,
+        redraw_id: redraw_id,
+        redraw_class_id: redraw_class_id,
+        redraw_class_name: '自定义',
+        design_id: '',
+        template_id: '',
+        template_file_id: '',
     }
 
     // 6.点击保存按钮
@@ -240,70 +258,74 @@ async function change_cover() {
     save_el.click()
 
     cover_loading.value = false
-
 }
 // ========================================== 列表相关处理 ===========================================
-
+// 列表获取文章详情内容
+let globalPopup = null
 async function listen_table_hover() {
     // 移除之前可能绑定的事件监听器（如果存在）
-    const trs = await getElementsByXPathAsync("//tr[contains(@class,'ant-table-row')]");
+    const trs = await getElementsByXPathAsync("//tr[contains(@class,'ant-table-row')]")
     trs.forEach(tr => {
-        const elm = tr.querySelector('td:nth-child(2)');
+        const elm = tr.querySelector('td:nth-child(2)')
 
         // 尝试移除先前可能绑定的事件监听器
         if (elm._handleMouseEnter) {
-            elm.removeEventListener('mouseenter', elm._handleMouseEnter);
+            elm.removeEventListener('mouseenter', elm._handleMouseEnter)
         }
         if (elm._handleMouseLeave) {
-            elm.removeEventListener('mouseleave', elm._handleMouseLeave);
+            elm.removeEventListener('mouseleave', elm._handleMouseLeave)
         }
 
         // 定义事件处理函数
         function handleMouseEnter(event) {
-            const articel_id = tr.querySelector('td:nth-child(1)').innerText;
-            const popup = document.createElement('div');
-            popup.className = 'popup';
-            popup.innerHTML = `<h1>正在获取数据中...</h1>`;
-            document.body.appendChild(popup);
+            if (globalPopup) {
+                globalPopup.classList.remove('show')
+                document.body.removeChild(globalPopup)
+            }
 
-            get_article_detail(articel_id, popup).then(() => {
-                popup.classList.add('show');
-                const rect = elm.getBoundingClientRect();
-                popup.style.top = `${rect.top + window.scrollY}px`;
-                popup.style.left = `${rect.right + window.scrollX}px`;
-            });
+            const articel_id = tr.querySelector('td:nth-child(1)').innerText
+            globalPopup = document.createElement('div')
+            globalPopup.className = 'popup'
+            globalPopup.innerHTML = `<h1>正在获取数据中...</h1>`
+            document.body.appendChild(globalPopup)
+
+            get_article_detail(articel_id, globalPopup).then(() => {
+                globalPopup.classList.add('show')
+                const rect = elm.getBoundingClientRect()
+                globalPopup.style.top = `${rect.top + window.scrollY}px`
+                globalPopup.style.left = `${rect.right + window.scrollX}px`
+            })
         }
 
         function handleMouseLeave(event) {
-            const popups = document.querySelectorAll('.popup.show');
-            popups.forEach(popup => {
-                popup.classList.remove('show');
-            });
+            if (globalPopup) {
+                globalPopup.classList.remove('show')
+            }
         }
 
         // 保存事件处理函数的引用到元素上，以便之后可以移除
-        elm._handleMouseEnter = handleMouseEnter;
-        elm._handleMouseLeave = handleMouseLeave;
+        elm._handleMouseEnter = handleMouseEnter
+        elm._handleMouseLeave = handleMouseLeave
 
         // 绑定新的事件监听器
-        elm.addEventListener('mouseenter', handleMouseEnter);
-        elm.addEventListener('mouseleave', handleMouseLeave);
-    });
+        elm.addEventListener('mouseenter', handleMouseEnter)
+        elm.addEventListener('mouseleave', handleMouseLeave)
+    })
 }
 
 // 发送请求，获取详细信息
 async function get_article_detail(article_id, popup) {
     const result = await my_get(`https://yyb-api.yilancloud.com/api/cms/v1/article/recreate/detail?yyb_article_id=${article_id}`)
     const articles = result?.data?.query_articles
-    let html = '';
+    let html = ''
     articles.forEach(article => {
         // 这里要判断状态
         if (article.pre_audit_status !== 0 || article.audit_status !== 0) {
             html += `
                         <h2>${article.title}</h2>
-                    `;
+                    `
         }
-    });
+    })
     if (html === '') html = '<h1>暂无人提交数据</h1>'
     popup.innerHTML = html
 }
@@ -316,19 +338,22 @@ const task_titles_loading = ref(false) // 当前任务AI生成标题列表加载
 async function getTitles() {
     task_titles_loading.value = true
     task_titles.value = []
-    const result = await my_post('https://api.coze.cn/v1/workflow/run', {
-        workflow_id: '7440838063737225243',
-        parameters: {
-            BOT_USER_INPUT: now_task_keyword.value,
+    const result = await my_post(
+        'https://api.coze.cn/v1/workflow/run',
+        {
+            workflow_id: '7440838063737225243',
+            parameters: {
+                BOT_USER_INPUT: now_task_keyword.value,
+            },
         },
-    }, {
-        'Content-Type': 'application/json',
-        Authorization: 'Bearer pat_gmrxgGDTRBV2cnGPx9vrhOHx4IMiShHUBKTXkVn8ql66xMuG7219YySM8P26rSR8',
-    })
+        {
+            'Content-Type': 'application/json',
+            Authorization: 'Bearer pat_gmrxgGDTRBV2cnGPx9vrhOHx4IMiShHUBKTXkVn8ql66xMuG7219YySM8P26rSR8',
+        },
+    )
 
     task_titles.value = JSON.parse(result.data).output
     task_titles_loading.value = false
-
 }
 
 // 点击修改标题
@@ -347,7 +372,7 @@ async function replaceTitleElement() {
     input.addEventListener('input', event => {
         now_title.value = event.target.value
     })
-    let originElement = document.querySelector("#manual-edit-id")
+    let originElement = document.querySelector('#manual-edit-id')
     if (originElement) {
         originElement.parentNode.replaceChild(input, originElement)
     } else {
@@ -355,7 +380,6 @@ async function replaceTitleElement() {
         originElement.style.display = 'none'
         originElement.parentNode.appendChild(input)
     }
-
 }
 // ========================================== 内容相关处理 ===========================================
 // 通过AI获取内容
@@ -364,26 +388,29 @@ async function changeContent() {
     content_loading.value = true
     let need_title = ''
     try {
-        need_title = now_title.value.split('：')[1];
+        need_title = now_title.value.split('：')[1]
     } catch {
         need_title = now_title.value
     }
-    const result = await my_post('https://api.coze.cn/v1/workflow/run', {
-        workflow_id: '7440845043767722024',
-        parameters: {
-            BOT_USER_INPUT: need_title,
+    const result = await my_post(
+        'https://api.coze.cn/v1/workflow/run',
+        {
+            workflow_id: '7440845043767722024',
+            parameters: {
+                BOT_USER_INPUT: need_title,
+            },
         },
-    }, {
-        'Content-Type': 'application/json',
-        Authorization: 'Bearer pat_gmrxgGDTRBV2cnGPx9vrhOHx4IMiShHUBKTXkVn8ql66xMuG7219YySM8P26rSR8',
-    })
+        {
+            'Content-Type': 'application/json',
+            Authorization: 'Bearer pat_gmrxgGDTRBV2cnGPx9vrhOHx4IMiShHUBKTXkVn8ql66xMuG7219YySM8P26rSR8',
+        },
+    )
 
     change_content = JSON.parse(result.data).output
     content_loading.value = false
     save_is_change_content = true
     const save_el = (await getElementsByXPathAsync("//button/span[text()='保 存']/parent::button"))[0]
     save_el.click()
-
 }
 // ========================================== 保存、审核相关处理 ===========================================
 // 提交前判断是否保存
@@ -393,7 +420,7 @@ async function listen_submit_click() {
     const origin_title_el = (await getElementsByXPathAsync("(//div[contains(@class,'ai-assistant-input__edit')])[1]//span/span/span"))[0]
 
     // 点击审核后，刷新
-    submit_el.addEventListener('click', async (event) => {
+    submit_el.addEventListener('click', async event => {
         if (now_title.value !== origin_title_el.innerText) {
             ElMessage.warning('未提前保存，自动保存中....')
             save_el.click()
@@ -407,17 +434,14 @@ async function listen_submit_click() {
 
 <template>
     <div class="image-text-container">
-        <el-button type="success" @click="getTitles()" v-loading="task_titles_loading"
-            :disabled="task_titles_loading">获取延伸标题</el-button>
+        <el-button type="success" @click="getTitles()" v-loading="task_titles_loading" :disabled="task_titles_loading">获取延伸标题</el-button>
         <div class="title-list">
             <div class="title-one" v-for="item in task_titles" :key="item" @click="changeTitle(item)">
                 {{ item }}
             </div>
         </div>
-        <el-button type="primary" @click="changeContent()" v-loading="content_loading"
-            :disabled="content_loading">获取内容</el-button>
-        <el-button type="danger" @click="change_cover()" v-loading="cover_loading"
-            :disabled="cover_loading">修改封面</el-button>
+        <el-button type="primary" @click="changeContent()" v-loading="content_loading" :disabled="content_loading">获取内容</el-button>
+        <el-button type="danger" @click="change_cover()" v-loading="cover_loading" :disabled="cover_loading">修改封面</el-button>
     </div>
     <!-- <el-dialog v-model="dialogVisible" title="" width="100%" :destroy-on-close="true">
         <div class="dialog-content"></div>
@@ -449,7 +473,7 @@ async function listen_submit_click() {
         margin-bottom: 3px;
     }
 
-    .el-button+.el-button {
+    .el-button + .el-button {
         margin-left: 0px;
     }
 
