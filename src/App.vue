@@ -114,6 +114,8 @@ function interceptRequest() {
                 if (this.readyState === 4) {
                     // 添加事件
                     listen_table_hover()
+                    // 增加领取任务按钮
+                    add_get_task_button()
                 }
             })
         }
@@ -126,8 +128,6 @@ function interceptRequest() {
                     res.data.items.forEach(item => {
                         idToImageNumMap.set(item.id, item?.note_card?.image_list?.length || 0)
                     })
-
-                    changeXhsListStyle()
                 }
             })
         }
@@ -378,7 +378,6 @@ async function get_article_detail(article_id, popup) {
 }
 
 // 增加领取任务按钮
-add_get_task_button()
 async function add_get_task_button() {
     const formEL = (await getElementsByXPathAsync("//div[@class='get-task-container']"))[0]
     if (formEL) {
@@ -498,13 +497,7 @@ async function listen_title() {
     if (location.href.includes('ai.openvam.com')) {
         GM_addValueChangeListener('yiyan_loaded', function (name, old_value, new_value, remote) {
             if (new_value === 'true') {
-                let need_title = ''
-                try {
-                    need_title = now_title.value.split('：')[1]
-                } catch {
-                    need_title = now_title.value
-                }
-                GM_setValue('yiyan_content', need_title)
+                GM_setValue('yiyan_content', now_task_keyword.value)
                 GM_setValue('yiyan_loaded', 'false')
             }
         })
@@ -565,7 +558,7 @@ function goto_xhs(keyword) {
         window.open(`https://www.xiaohongshu.com/search_result?keyword=${now_task_keyword.value}`)
     }
 }
-// 页面滚动后需要重新加载
+// 监听页面变化，页面滚动后需要重新加载
 function setupMutationObserver() {
     const targetNode = document.body // 监听整个body的变化
     const config = { childList: true, subtree: true }
