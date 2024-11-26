@@ -33,7 +33,6 @@ function my_post(url, data, headers = null) {
                   },
             data: JSON.stringify(data),
             onload: function (response) {
-                console.log('请求成功', response)
                 if (response.status === 200) {
                     resolve(JSON.parse(response.responseText))
                 } else {
@@ -98,7 +97,7 @@ function interceptRequest() {
                         task_titles.value.push('一文看懂：' + now_task_keyword.value)
                         task_titles.value.push('一文看懂：' + now_task_keyword.value + '是什么？')
                         now_title.value = res.data.title
-                        replaceTitleElement()
+                        // replaceTitleElement()
                     }
 
                     now_page_detail_info = res.data
@@ -379,6 +378,38 @@ async function get_article_detail(article_id, popup) {
     popup.innerHTML = html
 }
 
+// 增加领取任务按钮
+add_get_task_button()
+async function add_get_task_button() {
+    const formEL = (await getElementsByXPathAsync("//div[@class='get-task-container']"))[0]
+    if (formEL) {
+        if (document.querySelector('.my-get-task-button-div')) return
+
+        const my_button_div = document.createElement('div')
+        my_button_div.classList.add('my-get-task-button-div')
+
+        // 创建免答题按钮
+        const get_task_button_no_question = document.createElement('button')
+        get_task_button_no_question.textContent = '领取任务(免答题)'
+        get_task_button_no_question.classList.add('my-get-task-button') // 可以添加样式类
+        get_task_button_no_question.addEventListener('click', event => {
+            // 处理领取任务的逻辑
+            console.log('领取任务按钮被点击')
+        })
+        // 创建一键领取40条任务按钮
+        const task_40_button = document.createElement('button')
+        task_40_button.textContent = '领取任务(40条)'
+        task_40_button.classList.add('my-get-task-button') // 可以添加样式类
+        task_40_button.addEventListener('click', () => {
+            // 处理领取任务的逻辑
+        })
+
+        my_button_div.appendChild(get_task_button_no_question)
+        my_button_div.appendChild(task_40_button)
+        formEL.appendChild(my_button_div)
+    }
+}
+
 // ========================================== 标题相关处理 ===========================================
 const task_titles = ref([]) // 当前任务AI生成标题列表
 const now_title = ref('')
@@ -408,7 +439,18 @@ async function getTitles() {
 // 点击修改标题
 function changeTitle(title) {
     now_title.value = title
-    replaceTitleElement()
+    // replaceTitleElement()
+    // contenteditable文本，输入内容，这是一种方法
+    const editableDiv = document.querySelector('.yc-editor')
+    if (editableDiv) {
+        var inputEvent = new InputEvent('input', {
+            data: new_value,
+            inputType: 'insertText',
+            bubbles: true,
+            cancelable: true,
+        })
+        editableDiv.dispatchEvent(inputEvent)
+    }
 }
 
 // 替换原生的标题输入框
@@ -685,5 +727,18 @@ function show_menu_if() {
 }
 .img-count-default {
     background: #aaa;
+}
+.my-get-task-button {
+    border: none;
+    background: #0099ff;
+    color: #fff;
+    height: 32px;
+    margin-left: 20px;
+    cursor: pointer;
+    width: 120px;
+}
+.my-get-task-button:nth-of-type(1) {
+    width: 150px;
+    margin-left: 0px;
 }
 </style>
