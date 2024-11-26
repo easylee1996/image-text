@@ -402,7 +402,7 @@ async function replaceTitleElement() {
         originElement.parentNode.appendChild(input)
     }
 }
-// ========================================== 内容相关处理 ===========================================
+// ========================================== 文心一言相关 ===========================================
 // 跳转文心一言
 function goto_yiyan() {
     const yiyan_url = `https://yiyan.baidu.com/`
@@ -429,7 +429,7 @@ async function listen_title() {
     // 监听来自主页的标题
     if (location.href.includes('yiyan.baidu.com')) {
         GM_addValueChangeListener('yiyan_content', async function (name, old_value, new_value, remote) {
-            if (new_value !== '') {
+            if (new_value) {
                 // contenteditable文本，输入内容，这是一种方法
                 const editableDiv = document.querySelector('.yc-editor')
                 if (editableDiv) {
@@ -442,7 +442,7 @@ async function listen_title() {
                     editableDiv.dispatchEvent(inputEvent)
                 }
                 GM_setValue('yiyan_content', '')
-
+                alert(new_value)
                 // 点击发送
                 const sendBtn = (await getElementsByXPathAsync("//span[@id='sendBtn']"))[0]
                 if (sendBtn) {
@@ -474,7 +474,7 @@ async function listen_submit_click() {
         }
     })
 }
-// ========================================== 其他功能 ===========================================
+// ========================================== 小红书相关 ===========================================
 // 详情页跳转到小红书
 function goto_xhs(keyword) {
     if (keyword) {
@@ -483,10 +483,21 @@ function goto_xhs(keyword) {
         window.open(`https://www.xiaohongshu.com/search_result?keyword=${now_task_keyword.value}`)
     }
 }
+// ========================================== 其它功能处理 ===========================================
+// 是否显示menu菜单
+const show_menu = ref(true)
+show_menu_if()
+function show_menu_if() {
+    if (location.href.includes('ai.openvam.com')) {
+        show_menu.value = true
+    } else {
+        show_menu.value = false
+    }
+}
 </script>
 
 <template>
-    <div class="image-text-container">
+    <div class="image-text-container" v-if="show_menu">
         <el-button type="success" @click="getTitles()" v-loading="task_titles_loading" :disabled="task_titles_loading">获取延伸标题</el-button>
         <div class="title-list">
             <div class="title-one" v-for="item in task_titles" :key="item" @click="changeTitle(item)">
