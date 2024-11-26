@@ -3,6 +3,7 @@ import { GM_xmlhttpRequest, GM_getResourceURL, GM_addValueChangeListener, GM_set
 import { ref, h, nextTick } from 'vue'
 import { getElementsByXPathAsync } from './utils/utils'
 import Cookies from 'js-cookie'
+import { throttle } from 'lodash'
 
 // 变量
 const now_task_keyword = ref('') // 当前任务关键词
@@ -13,7 +14,9 @@ let change_cover_image_obj = {}
 let save_is_change_cover = false
 let change_content = ''
 let save_is_change_content = false
-
+// 小红书
+const idToImageNumMap = new Map()
+const imgMinNum = ref(0)
 // ========================================== 公用方法 ===========================================
 // 自定义post
 function my_post(url, data, headers = null) {
@@ -116,6 +119,20 @@ function interceptRequest() {
                 }
             })
         }
+        //小红书列表页面，这里需要开启注入脚本时机为document-start，否则小红书的默认加载接口会过快
+        if (url.includes('/notes')) {
+            this.addEventListener('readystatechange', function () {
+                if (this.readyState === 4) {
+                    const res = JSON.parse(this.responseText) // 当前 xhr 对象上定义 responseText
+
+                    res.data.items.forEach(item => {
+                        idToImageNumMap.set(item.id, item?.note_card?.image_list?.length || 0)
+                    })
+
+                    changeXhsListStyle()
+                }
+            })
+        }
         originOpen.apply(this, arguments)
     }
     // 提交劫持
@@ -137,10 +154,21 @@ function interceptRequest() {
                 save_is_change_content = false
             }
             arguments[0] = JSON.stringify(data)
-            console.log('最终参数', arguments[0])
         }
         return originSend.apply(this, arguments)
     }
+}
+// 模拟react input change，直接变更input的value值是不会生效的,仅限于input标签可以生效
+function changeReactInputValue(inputDom, newText) {
+    let lastValue = inputDom.value
+    inputDom.value = newText
+    let event = new Event('input', { bubbles: true })
+    event.simulated = true
+    let tracker = inputDom._valueTracker
+    if (tracker) {
+        tracker.setValue(lastValue)
+    }
+    inputDom.dispatchEvent(event)
 }
 // ========================================== 封面图片处理 ===========================================
 /**
@@ -442,7 +470,6 @@ async function listen_title() {
                     editableDiv.dispatchEvent(inputEvent)
                 }
                 GM_setValue('yiyan_content', '')
-                alert(new_value)
                 // 点击发送
                 const sendBtn = (await getElementsByXPathAsync("//span[@id='sendBtn']"))[0]
                 if (sendBtn) {
@@ -482,6 +509,46 @@ function goto_xhs(keyword) {
     } else {
         window.open(`https://www.xiaohongshu.com/search_result?keyword=${now_task_keyword.value}`)
     }
+}
+// 页面滚动后需要重新加载
+function setupMutationObserver() {
+    const targetNode = document.body // 监听整个body的变化
+    const config = { childList: true, subtree: true }
+
+    const throttledChangeXhsListStyle = throttle(changeXhsListStyle, 1000)
+
+    const observer = new MutationObserver(mutations => {
+        mutations.forEach(mutation => {
+            if (mutation.addedNodes.length > 0) {
+                throttledChangeXhsListStyle()
+            }
+        })
+    })
+
+    observer.observe(targetNode, config)
+}
+setupMutationObserver()
+// 添加图片数量
+function changeXhsListStyle() {
+    const list = document.querySelectorAll('.note-item')
+
+    list.forEach(item => {
+        let id = ''
+        try {
+            id = item.children[0].children[0].href.split('/')
+            id = id[id.length - 1]
+        } catch (error) {
+            // console.error('Error extracting ID:', error)
+        }
+
+        const imageNum = idToImageNumMap.get(id) // 通过ID快速查找image_num
+        if (imageNum !== undefined && item.querySelector('.img-count') === null) {
+            const countEl = document.createElement('div')
+            countEl.className = imageNum >= imgMinNum.value ? 'img-count' : 'img-count img-count-default'
+            countEl.textContent = imageNum
+            item.appendChild(countEl)
+        }
+    })
 }
 // ========================================== 其它功能处理 ===========================================
 // 是否显示menu菜单
@@ -596,5 +663,27 @@ function show_menu_if() {
     background: none;
     cursor: pointer;
     color: red;
+}
+.need-item {
+    border: 4px solid red;
+    overflow: hidden;
+}
+.img-count {
+    width: 30px;
+    height: 30px;
+    position: absolute;
+    top: 3px;
+    right: 3px;
+    border-radius: 50%;
+    background: red;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 16px;
+    color: #fff;
+    font-weight: 700;
+}
+.img-count-default {
+    background: #aaa;
 }
 </style>
