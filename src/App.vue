@@ -1,5 +1,5 @@
 <script setup>
-import { GM_xmlhttpRequest, GM_getResourceURL } from '$'
+import { GM_xmlhttpRequest, GM_getResourceURL, GM_addValueChangeListener, GM_setValue, GM_getValue } from '$'
 import { ref, h, nextTick } from 'vue'
 import { getElementsByXPathAsync } from './utils/utils'
 import Cookies from 'js-cookie'
@@ -403,36 +403,59 @@ async function replaceTitleElement() {
     }
 }
 // ========================================== 内容相关处理 ===========================================
-// 通过AI获取内容
-const content_loading = ref(false)
-async function changeContent() {
-    content_loading.value = true
-    let need_title = ''
-    try {
-        need_title = now_title.value.split('：')[1]
-    } catch {
-        need_title = now_title.value
-    }
-    const result = await my_post(
-        'https://api.coze.cn/v1/workflow/run',
-        {
-            workflow_id: '7440845043767722024',
-            parameters: {
-                BOT_USER_INPUT: need_title,
-            },
-        },
-        {
-            'Content-Type': 'application/json',
-            Authorization: 'Bearer pat_gmrxgGDTRBV2cnGPx9vrhOHx4IMiShHUBKTXkVn8ql66xMuG7219YySM8P26rSR8',
-        },
-    )
-
-    change_content = JSON.parse(result.data).output
-    content_loading.value = false
-    save_is_change_content = true
-    const save_el = (await getElementsByXPathAsync("//button/span[text()='保 存']/parent::button"))[0]
-    save_el.click()
+// 跳转文心一言
+function goto_yiyan() {
+    const yiyan_url = `https://yiyan.baidu.com/`
+    window.open(yiyan_url)
 }
+// 监听来自详情页的标题
+listen_title()
+async function listen_title() {
+    // 监听文心一言加载完成，传递标题过去
+    if (location.href.includes('ai.openvam.com')) {
+        GM_addValueChangeListener('yiyan_loaded', function (name, old_value, new_value, remote) {
+            if (new_value === 'true') {
+                let need_title = ''
+                try {
+                    need_title = now_title.value.split('：')[1]
+                } catch {
+                    need_title = now_title.value
+                }
+                GM_setValue('yiyan_content', need_title)
+                GM_setValue('yiyan_loaded', 'false')
+            }
+        })
+    }
+    // 监听来自主页的标题
+    if (location.href.includes('yiyan.baidu.com')) {
+        GM_addValueChangeListener('yiyan_content', async function (name, old_value, new_value, remote) {
+            if (new_value !== '') {
+                // contenteditable文本，输入内容，这是一种方法
+                const editableDiv = document.querySelector('.yc-editor')
+                if (editableDiv) {
+                    var inputEvent = new InputEvent('input', {
+                        data: new_value,
+                        inputType: 'insertText',
+                        bubbles: true,
+                        cancelable: true,
+                    })
+                    editableDiv.dispatchEvent(inputEvent)
+                }
+                GM_setValue('yiyan_content', '')
+
+                // 点击发送
+                const sendBtn = (await getElementsByXPathAsync("//span[@id='sendBtn']"))[0]
+                if (sendBtn) {
+                    sendBtn.click()
+                }
+            }
+        })
+
+        await getElementsByXPathAsync("//span[@id='sendBtn']")
+        GM_setValue('yiyan_loaded', 'true')
+    }
+}
+
 // ========================================== 保存、审核相关处理 ===========================================
 // 提交前判断是否保存
 async function listen_submit_click() {
@@ -470,7 +493,7 @@ function goto_xhs(keyword) {
                 {{ item }}
             </div>
         </div>
-        <el-button type="primary" @click="changeContent()" v-loading="content_loading" :disabled="content_loading">获取内容</el-button>
+        <el-button type="primary" @click="goto_yiyan()">跳转文心一言</el-button>
         <el-button type="danger" @click="change_cover()" v-loading="cover_loading" :disabled="cover_loading">修改封面</el-button>
         <el-button type="warning" @click="goto_xhs()">跳转到小红书</el-button>
     </div>
