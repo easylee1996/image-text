@@ -57,7 +57,6 @@ function my_get(url) {
                 Teamid: Teamid,
             },
             onload: function (response) {
-                console.log('请求成功', response)
                 if (response.status === 200) {
                     resolve(JSON.parse(response.responseText))
                 } else {
@@ -97,7 +96,7 @@ function interceptRequest() {
                         task_titles.value.push('一文看懂：' + now_task_keyword.value)
                         task_titles.value.push('一文看懂：' + now_task_keyword.value + '是什么？')
                         now_title.value = res.data.title
-                        // replaceTitleElement()
+                        replaceTitleElement()
                     }
 
                     now_page_detail_info = res.data
@@ -392,16 +391,39 @@ async function add_get_task_button() {
         const get_task_button_no_question = document.createElement('button')
         get_task_button_no_question.textContent = '领取任务(免答题)'
         get_task_button_no_question.classList.add('my-get-task-button') // 可以添加样式类
-        get_task_button_no_question.addEventListener('click', event => {
-            // 处理领取任务的逻辑
-            console.log('领取任务按钮被点击')
+        get_task_button_no_question.addEventListener('click', async event => {
+            const max_task_num_input = (await getElementsByXPathAsync("//input[@id='max_task_num']"))[0]
+            const max_task_num = max_task_num_input.value
+
+            const result = await my_post('https://yyb-api.yilancloud.com/api/article/v1/article/creative/alloc', {
+                strategy: 0,
+                max_task_num: max_task_num,
+                article_project_id: 'ql3v5Roy7RaK',
+            })
+
+            if (!result.data) {
+                ElMessage.error(result.msg)
+                return
+            }
+            ElMessage.success('领取成功')
+            window.location.reload()
         })
         // 创建一键领取40条任务按钮
         const task_40_button = document.createElement('button')
         task_40_button.textContent = '领取任务(40条)'
         task_40_button.classList.add('my-get-task-button') // 可以添加样式类
-        task_40_button.addEventListener('click', () => {
-            // 处理领取任务的逻辑
+        task_40_button.addEventListener('click', async () => {
+            const result = await my_post('https://yyb-api.yilancloud.com/api/article/v1/article/creative/alloc', {
+                strategy: 0,
+                max_task_num: 40,
+                article_project_id: 'ql3v5Roy7RaK',
+            })
+            if (!result.data) {
+                ElMessage.error(result.msg)
+                return
+            }
+            ElMessage.success('领取成功')
+            window.location.reload()
         })
 
         my_button_div.appendChild(get_task_button_no_question)
@@ -439,18 +461,7 @@ async function getTitles() {
 // 点击修改标题
 function changeTitle(title) {
     now_title.value = title
-    // replaceTitleElement()
-    // contenteditable文本，输入内容，这是一种方法
-    const editableDiv = document.querySelector('.yc-editor')
-    if (editableDiv) {
-        var inputEvent = new InputEvent('input', {
-            data: new_value,
-            inputType: 'insertText',
-            bubbles: true,
-            cancelable: true,
-        })
-        editableDiv.dispatchEvent(inputEvent)
-    }
+    replaceTitleElement()
 }
 
 // 替换原生的标题输入框
@@ -481,6 +492,8 @@ function goto_yiyan() {
 // 监听来自详情页的标题
 listen_title()
 async function listen_title() {
+    GM_setValue('yiyan_content', '')
+    GM_setValue('yiyan_loaded', 'false')
     // 监听文心一言加载完成，传递标题过去
     if (location.href.includes('ai.openvam.com')) {
         GM_addValueChangeListener('yiyan_loaded', function (name, old_value, new_value, remote) {
@@ -736,6 +749,7 @@ function show_menu_if() {
     margin-left: 20px;
     cursor: pointer;
     width: 120px;
+    /* display: inline-block; */
 }
 .my-get-task-button:nth-of-type(1) {
     width: 150px;
