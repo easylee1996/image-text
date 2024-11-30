@@ -27,10 +27,10 @@ function my_post(url, data, headers = null) {
             headers: headers
                 ? headers
                 : {
-                      'Content-Type': 'application/json',
-                      Token: token,
-                      Teamid: Teamid,
-                  },
+                    'Content-Type': 'application/json',
+                    Token: token,
+                    Teamid: Teamid,
+                },
             data: JSON.stringify(data),
             onload: function (response) {
                 if (response.status === 200) {
@@ -93,16 +93,12 @@ function interceptRequest() {
                         task_titles.value = []
                         task_titles.value.push('带你了解：' + now_task_keyword.value)
                         task_titles.value.push('带你了解：' + now_task_keyword.value + '是什么？')
-                        task_titles.value.push('一文看懂：' + now_task_keyword.value)
-                        task_titles.value.push('一文看懂：' + now_task_keyword.value + '是什么？')
+                        task_titles.value.push('速看：' + now_task_keyword.value)
+                        task_titles.value.push('速看：' + now_task_keyword.value + '是什么？')
                         now_title.value = res.data.title
-                        replaceTitleElement()
                     }
 
                     now_page_detail_info = res.data
-
-                    // 监听点击审核按钮
-                    listen_submit_click()
 
                     this.responseText = JSON.stringify(res)
                 }
@@ -460,27 +456,21 @@ async function getTitles() {
 // 点击修改标题
 function changeTitle(title) {
     now_title.value = title
-    replaceTitleElement()
+    // replaceTitleElement()
+    inputTitle()
 }
 
-// 替换原生的标题输入框
-async function replaceTitleElement() {
-    const input = document.createElement('input')
-    input.id = 'manual-edit-id'
-    input.type = 'text'
-    input.style.width = '100%'
-    input.value = now_title.value
-    input.addEventListener('input', event => {
-        now_title.value = event.target.value
-    })
-    let originElement = document.querySelector('#manual-edit-id')
-    if (originElement) {
-        originElement.parentNode.replaceChild(input, originElement)
-    } else {
-        originElement = (await getElementsByXPathAsync("(//div[contains(@class,'ai-assistant-input__edit')])[1]"))[0]
-        originElement.style.display = 'none'
-        originElement.parentNode.appendChild(input)
-    }
+// 通过python模拟输入标题，js无法改变react的state
+async function inputTitle() {
+    const title_el = (await getElementsByXPathAsync("/html/body/div[1]/section/div[2]/section/main/div/div/div[1]/div/div/div[1]/div[1]/div[2]/div[1]/div/div/div[3]/div"))[0]
+    title_el.focus()
+    title_el.focus()
+
+    // 复制标题到剪贴板
+    await navigator.clipboard.writeText(now_title.value)
+
+    await my_post(import.meta.env.VITE_API_URL + '/paste_title')
+
 }
 // ========================================== 文心一言相关 ===========================================
 // 跳转文心一言
@@ -532,23 +522,7 @@ async function listen_title() {
 }
 
 // ========================================== 保存、审核相关处理 ===========================================
-// 提交前判断是否保存
-async function listen_submit_click() {
-    const submit_el = (await getElementsByXPathAsync("//button/span[text()='提交审核']/parent::button"))[0]
-    const save_el = (await getElementsByXPathAsync("//button/span[text()='保 存']/parent::button"))[0]
-    const origin_title_el = (await getElementsByXPathAsync("(//div[contains(@class,'ai-assistant-input__edit')])[1]//span/span/span"))[0]
 
-    // 点击审核后，刷新
-    submit_el.addEventListener('click', async event => {
-        if (now_title.value !== origin_title_el.innerText) {
-            ElMessage.warning('未提前保存，自动保存中....')
-            save_el.click()
-
-            await getElementsByXPathAsync("//div[@class='ant-message']//span[text()='保存成功']")
-            window.location.reload()
-        }
-    })
-}
 // ========================================== 小红书相关 ===========================================
 // 详情页跳转到小红书
 function goto_xhs(keyword) {
@@ -613,14 +587,16 @@ function show_menu_if() {
 
 <template>
     <div class="image-text-container" v-if="show_menu">
-        <el-button type="success" @click="getTitles()" v-loading="task_titles_loading" :disabled="task_titles_loading">获取延伸标题</el-button>
+        <el-button type="success" @click="getTitles()" v-loading="task_titles_loading"
+            :disabled="task_titles_loading">获取延伸标题</el-button>
         <div class="title-list">
             <div class="title-one" v-for="item in task_titles" :key="item" @click="changeTitle(item)">
                 {{ item }}
             </div>
         </div>
         <el-button type="primary" @click="goto_yiyan()">跳转文心一言</el-button>
-        <el-button type="danger" @click="change_cover()" v-loading="cover_loading" :disabled="cover_loading">修改封面</el-button>
+        <el-button type="danger" @click="change_cover()" v-loading="cover_loading"
+            :disabled="cover_loading">修改封面</el-button>
         <el-button type="warning" @click="goto_xhs()">跳转到小红书</el-button>
     </div>
     <!-- <el-dialog v-model="dialogVisible" title="" width="100%" :destroy-on-close="true">
@@ -653,7 +629,7 @@ function show_menu_if() {
         margin-bottom: 3px;
     }
 
-    .el-button + .el-button {
+    .el-button+.el-button {
         margin-left: 0px;
     }
 
@@ -706,16 +682,19 @@ function show_menu_if() {
 .popup.show {
     display: block;
 }
+
 .goto_xhs_button {
     border: none;
     background: none;
     cursor: pointer;
     color: red;
 }
+
 .need-item {
     border: 4px solid red;
     overflow: hidden;
 }
+
 .img-count {
     width: 30px;
     height: 30px;
@@ -731,9 +710,11 @@ function show_menu_if() {
     color: #fff;
     font-weight: 700;
 }
+
 .img-count-default {
     background: #aaa;
 }
+
 .my-get-task-button {
     border: none;
     background: #0099ff;
@@ -744,6 +725,7 @@ function show_menu_if() {
     width: 120px;
     /* display: inline-block; */
 }
+
 .my-get-task-button:nth-of-type(1) {
     width: 150px;
     margin-left: 0px;

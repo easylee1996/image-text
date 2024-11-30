@@ -2,6 +2,7 @@ from pathlib import Path
 
 from cover import goto_download_cover
 from flask import Flask, jsonify, request, send_from_directory
+from my_keyboard import paste_title
 
 app = Flask(__name__, static_folder="cover-generate/dist", static_url_path="")
 
@@ -64,6 +65,11 @@ def serve_cover(filename):
 @app.route("/")
 def serve():
     return send_from_directory(app.static_folder, "index.html")
+
+@app.route('/paste_title', methods=['POST'])
+def change_title():
+    paste_title()
+    return jsonify({"status": "true"}), 200
 
 
 if __name__ == "__main__":
