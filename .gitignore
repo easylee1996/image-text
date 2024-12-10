@@ -8,3 +8,5 @@ node_modules
 
 vite.config.{ts,js}.timestamp-*.mjs
 .env
+poetry.lock
+/download/*
