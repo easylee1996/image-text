@@ -477,7 +477,32 @@ async function inputTitle() {
     await my_post(import.meta.env.VITE_API_URL + '/paste_title')
 
 }
-// ========================================== 文心一言相关 ===========================================
+// 监听文本框输入变化   暂时无法实现，因为输入会报错，导致代码无法执行
+// listen_title_change()
+// async function listen_title_change() {
+//     // 获取可编辑的 div 元素
+//     const editableDiv = (await getElementsByXPathAsync("(//div[@class='w-e-scroll'])[1]//span[text()]"))[0]
+
+
+//     // 创建 MutationObserver 实例
+//     const observer = new MutationObserver(function (mutations) {
+//         // 获取当前 div 内的文本内容
+//         const text = editableDiv.innerText || editableDiv.textContent;
+
+//         console.log(text)
+//     });
+
+//     // 配置观察选项
+//     const config = {
+//         childList: true,  // 观察子节点的变化
+//         subtree: true,    // 观察所有子节点的变化
+//         characterData: true,  // 观察字符数据的变化
+//     };
+
+//     // 开始观察
+//     observer.observe(editableDiv, config);
+// }
+// ========================================== AI生成文章相关 ===========================================
 // 跳转文心一言
 function goto_yiyan() {
     const yiyan_url = `https://yiyan.baidu.com/`
@@ -523,7 +548,6 @@ async function listen_title() {
                     // python 模拟输入
                     await navigator.clipboard.writeText(new_value)
                     await my_post(import.meta.env.VITE_API_URL + '/input_ai')
-                    GM_setValue('ai_content', '')
                 }
                 GM_setValue('ai_content', '')
             }
@@ -541,8 +565,8 @@ async function listen_title() {
                 // python 模拟输入
                 await navigator.clipboard.writeText(new_value)
                 await my_post(import.meta.env.VITE_API_URL + '/input_ai')
-                GM_setValue('ai_content', '')
             }
+            GM_setValue('ai_content', '')
         })
 
         await getElementsByXPathAsync("//button[@id='flow-end-msg-send']")
@@ -558,8 +582,8 @@ async function listen_title() {
                 // python 模拟输入
                 await navigator.clipboard.writeText(new_value)
                 await my_post(import.meta.env.VITE_API_URL + '/input_ai')
-                GM_setValue('ai_content', '')
             }
+            GM_setValue('ai_content', '')
         })
 
         await getElementsByXPathAsync("//*[@id='tongyiPageLayout']/div[3]/div/div[2]/div[1]/div[3]/div[2]/div/div[3]")
@@ -579,11 +603,11 @@ async function listen_save_check() {
         comfirm_el.click()
 
         // 再次确定
-        const comfirm_twice_el = (await getElementsByXPathAsync("/html/body/div[6]/div/div[2]/div/div[2]/div/div/div[2]/button[2]"))[0]
+        const comfirm_twice_el = (await getElementsByXPathAsync("//div[@class='ant-modal-confirm-btns']//span[text()='确 定']/.."))[0]
         comfirm_twice_el.click()
 
         // 返回列表页
-        const goto_list_el = (await getElementsByXPathAsync("/html/body/div[6]/div/div[2]/div/div[2]/div/div/div[2]/button[2]/span[text()='前往我的任务']/.."))[0]
+        const goto_list_el = (await getElementsByXPathAsync("//div[@class='ant-modal-confirm-btns']//span[text()='前往我的任务']/.."))[0]
         goto_list_el.click()
     })
 }
@@ -659,6 +683,11 @@ function show_menu_if() {
                 {{ item }}
             </div>
         </div>
+        <div class="title-input">
+            <el-input v-model="now_title" placeholder="请输入标题"></el-input>
+            <el-button size="small" @click="changeTitle(now_title)">修改标题</el-button>
+        </div>
+
         <el-button type="danger" @click="change_cover()" v-loading="cover_loading"
             :disabled="cover_loading">修改封面</el-button>
         <el-button type="warning" @click="goto_xhs()">跳转到小红书</el-button>
@@ -715,6 +744,8 @@ function show_menu_if() {
             margin-bottom: 5px;
         }
     }
+
+
 }
 </style>
 <style>
@@ -798,5 +829,20 @@ function show_menu_if() {
 .my-get-task-button:nth-of-type(1) {
     width: 150px;
     margin-left: 0px;
+}
+
+.title-input {
+    margin-bottom: 10px;
+    width: 100%;
+
+    .el-input {
+        width: 100%;
+        margin-bottom: 2px;
+
+        .el-input__inner {
+            font-size: 10px;
+            width: 100%;
+        }
+    }
 }
 </style>
