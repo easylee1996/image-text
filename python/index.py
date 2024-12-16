@@ -1,4 +1,5 @@
 from pathlib import Path
+import platform
 
 from cover import goto_download_cover
 from flask import Flask, jsonify, request, send_from_directory
@@ -77,6 +78,41 @@ def change_title():
 def change_ai():
     input_ai()
     return jsonify({"status": "true"}), 200
+
+# 删除下载目录
+@app.route('/delete_download', methods=['POST'])
+def delete_download():
+    # 检测操作系统类型
+    os_name = platform.system()
+
+    if os_name == "Windows":
+        # Windows系统的下载目录
+        download_dir = Path.home() / "Downloads"
+    elif os_name == "Darwin":  # 'Darwin' 是 macOS 的内部名称
+        # macOS系统的下载目录
+        download_dir = Path.home() / "Downloads"
+    else:
+        # 对于其他操作系统，你可以选择不执行任何操作，或者指定一个默认路径
+        return jsonify({"status": "unsupported_os", "message": "Unsupported operating system"}), 400
+
+    # 确保目录存在
+    if not download_dir.exists():
+        return jsonify({"status": "error", "message": "Download directory does not exist"}), 400
+
+    # 删除下载目录中的所有文件
+    for file in download_dir.glob("*"):
+        try:
+            if file.is_file():  # 只删除文件，避免递归删除非空目录
+                file.unlink()
+            elif file.is_dir():
+                # 如果你想删除目录及其内容，请确保这是你想要的行为
+                # 并且在生产环境中谨慎使用
+                # shutil.rmtree(file)
+                pass  # 这里我们选择跳过目录
+        except Exception as e:
+            return jsonify({"status": "error", "message": f"Failed to delete {file}: {e}"}), 500
+
+    return jsonify({"status": "success"}), 200
 
 
 if __name__ == "__main__":

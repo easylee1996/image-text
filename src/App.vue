@@ -9,7 +9,9 @@ import { throttle } from 'lodash'
 const now_task_keyword = ref('') // 当前任务关键词
 let token = Cookies.get('enterprise_yyb_token')
 let Teamid = Cookies.get('TeamId')
-let now_page_detail_info = {}
+let now_page_detail_info = {
+    article_project_id: 'ql3v5Roy7RaK',
+}
 let change_cover_image_obj = {}
 let save_is_change_cover = false
 let change_content = ''
@@ -109,6 +111,8 @@ function interceptRequest() {
         }
         // 列表页面
         if (url.includes('/article/recreate/tasks')) {
+            // 先获取任务
+            get_task()
             this.addEventListener('readystatechange', function () {
                 if (this.readyState === 4) {
                     // 添加事件
@@ -118,8 +122,8 @@ function interceptRequest() {
                 }
             })
         }
-        //小红书列表页面，这里需要开启注入脚本时机为document-start，否则小红书的默认加载接口会过快
-        if (url.includes('/notes')) {
+        //小红书列表页面，这里需要开启注入脚本时机为document-start，否则小红书的默认加载接口会过快，但开启后会导致脚本注入失败，暂时未开启
+        if (url.includes('/api/sns/web/v1/search/notes')) {
             this.addEventListener('readystatechange', function () {
                 if (this.readyState === 4) {
                     const res = JSON.parse(this.responseText) // 当前 xhr 对象上定义 responseText
@@ -128,6 +132,7 @@ function interceptRequest() {
                         idToImageNumMap.set(item.id, item?.note_card?.image_list?.length || 0)
                     })
                 }
+
             })
         }
         originOpen.apply(this, arguments)
@@ -396,7 +401,7 @@ async function add_get_task_button() {
         //     const result = await my_post('https://yyb-api.yilancloud.com/api/article/v1/article/creative/alloc', {
         //         strategy: 0,
         //         max_task_num: max_task_num,
-        //         article_project_id: 'ql3v5Roy7RaK',
+        //         article_project_id: now_page_detail_info.article_project_id,
         //     })
 
         //     if (!result.data) {
@@ -412,24 +417,25 @@ async function add_get_task_button() {
         const task_50_button = document.createElement('button')
         task_50_button.textContent = '领取任务(50条)'
         task_50_button.classList.add('my-get-task-button') // 可以添加样式类
-        task_50_button.addEventListener('click', async () => {
-            const result = await my_post('https://yyb-api.yilancloud.com/api/article/v1/article/creative/alloc', {
-                strategy: 0,
-                max_task_num: 50,
-                article_project_id: 'ql3v5Roy7RaK',
-            })
-            if (!result.data) {
-                ElMessage.error(result.msg)
-                return
-            }
-            ElMessage.success('领取成功')
-            window.location.reload()
-        })
-
+        task_50_button.addEventListener('click', () => get_task())
 
         my_button_div.appendChild(task_50_button)
         formEL.appendChild(my_button_div)
     }
+}
+
+// 领取任务方法
+async function get_task(num = 50) {
+    const result = await my_post('https://yyb-api.yilancloud.com/api/article/v1/article/creative/alloc', {
+        strategy: 0,
+        max_task_num: num,
+        article_project_id: now_page_detail_info.article_project_id,
+    })
+    if (!result.data) {
+        ElMessage.error(result.msg)
+        return
+    }
+    ElMessage.success('领取成功')
 }
 
 // ========================================== 标题相关处理 ===========================================
@@ -591,25 +597,37 @@ async function listen_title() {
     }
 }
 
-// ========================================== 保存、审核相关处理 ===========================================
+// ========================================== 详情页相关处理 ===========================================
 // 监听点击审核，自动执行后续操作
 
 async function listen_save_check() {
     const check_el = (await getElementsByXPathAsync("//*[@id='root']/section/div[2]/section/main/div/div/div[1]/div/div/div[1]/div[2]/button[2]"))[0]
 
     check_el.addEventListener('click', async () => {
-        // 确定元素
-        const comfirm_el = (await getElementsByXPathAsync("//*[@id='root']/section/div[2]/section/main/div/div/div[3]/div[3]/div/div/div/div/div/div/div[2]/div/div[4]/button"))[0]
+        console.log('监听到点击审核')
+        // 确定元素  这里会点击多次，所以需要判断
+        const comfirm_el = (await getElementsByXPathAsync("//div[@class='xhs-edit__info-footer']//span[text()='确 定']/.."))[0]
         comfirm_el.click()
 
         // 再次确定
         const comfirm_twice_el = (await getElementsByXPathAsync("//div[@class='ant-modal-confirm-btns']//span[text()='确 定']/.."))[0]
         comfirm_twice_el.click()
 
+
         // 返回列表页
         const goto_list_el = (await getElementsByXPathAsync("//div[@class='ant-modal-confirm-btns']//span[text()='前往我的任务']/.."))[0]
         goto_list_el.click()
     })
+}
+
+// 放弃当前任务
+async function abandon_task() {
+    const result = await my_post(`https://yyb-api.yilancloud.com/api/article/v1/creative/abandon`, {
+        yyb_article_id: now_page_detail_info.yyb_article_id,
+        article_project_id: now_page_detail_info.article_project_id,
+    })
+    // 返回上一页
+    window.history.back()
 }
 
 // ========================================== 小红书相关 ===========================================
@@ -661,6 +679,16 @@ function changeXhsListStyle() {
         }
     })
 }
+// 进入小红书，点击搜索按钮，再触发一遍查询列表，默认的小红书列表请求太快，监听无法生效，所以需要手动点击执行一次
+(async () => {
+    if (location.href.includes('xiaohongshu.com')) {
+        const search_btn_el = (await getElementsByXPathAsync("//div[@class='search-icon']"))[0]
+        search_btn_el.click()
+
+        // 监听下载插件点击事件
+        add_delete_download_btn_listen()
+    }
+})()
 // ========================================== 其它功能处理 ===========================================
 // 是否显示menu菜单
 const show_menu = ref(true)
@@ -671,6 +699,38 @@ function show_menu_if() {
     } else {
         show_menu.value = false
     }
+}
+// 删除下载目录
+async function delete_download_dir() {
+    await my_post(import.meta.env.VITE_API_URL + '/delete_download')
+}
+// 给小红书图片下载插件添加一个按钮
+async function add_delete_download_btn_listen() {
+    const script_start_el = (await getElementsByXPathAsync("//div[contains(@class,'xiaohongshu-download-float-btn')]"))[0]
+    script_start_el.addEventListener('click', async () => {
+
+        const delete_btn = document.querySelector('.delete-download-dir-btn')
+        if (delete_btn) {
+            return
+        }
+
+        const btns = (await getElementsByXPathAsync("//div[contains(@class,'btns')]"))[0]
+        const my_button_div = document.createElement('button')
+        my_button_div.textContent = '清空下载目录'
+        my_button_div.classList.add('delete-download-dir-btn') // 可以添加样式类
+        my_button_div.addEventListener('click', () => delete_download_dir())
+
+
+        // 将按钮插入到第二个位置
+        const existingButtons = Array.from(btns.children);
+
+        if (existingButtons.length < 2) {
+            btns.appendChild(my_button_div);
+        } else {
+            const secondButton = existingButtons[1];
+            btns.insertBefore(my_button_div, secondButton);
+        }
+    })
 }
 </script>
 
@@ -694,6 +754,8 @@ function show_menu_if() {
         <el-button type="primary" @click="goto_doubao()">跳转豆包</el-button>
         <el-button type="primary" @click="goto_qianwen()">跳转通义千问</el-button>
         <el-button type="primary" @click="goto_yiyan()">跳转文心一言</el-button>
+        <el-button type="danger" @click="abandon_task()">放弃任务</el-button>
+        <!-- <el-button type="danger" @click="delete_download_dir()">删除下载目录</el-button> -->
 
 
     </div>
@@ -844,5 +906,16 @@ function show_menu_if() {
             width: 100%;
         }
     }
+}
+
+.delete-download-dir-btn {
+    border: 1px solid red;
+    border-radius: 5px;
+    width: 100px;
+    margin-right: 5px;
+    margin-left: 5px;
+    cursor: pointer;
+    background-color: crimson;
+    color: #fff;
 }
 </style>
