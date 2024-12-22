@@ -2,6 +2,7 @@ import platform
 import time
 from pynput.keyboard import Controller, Key
 
+
 # 初始化键盘控制器
 keyboard = Controller()
 
@@ -67,3 +68,4 @@ def search_xhs():
 
     except Exception as e:
         print("Error occurred: ", e)
+

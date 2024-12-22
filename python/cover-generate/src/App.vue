@@ -12,16 +12,6 @@ import { ref, onMounted, computed } from 'vue'
 const coverTextStyleList = [
     {
         id: 0,
-        top: '900px',
-        left: '80px',
-        fontStyle: 'Arial',
-        fontSize: '120px',
-        width: '1100px',
-        height: '560px',
-        lineHeight: 1.4,
-    },
-    {
-        id: 1,
         top: '100px',
         left: '40px',
         fontStyle: 'Arial',
@@ -31,7 +21,7 @@ const coverTextStyleList = [
         lineHeight: 1.4,
     },
     {
-        id: 2,
+        id: 1,
         top: '450px',
         left: '200px',
         fontStyle: 'Arial',
@@ -41,7 +31,7 @@ const coverTextStyleList = [
         lineHeight: 1.4,
     },
     {
-        id: 3,
+        id: 2,
         top: '450px',
         left: '240px',
         fontStyle: 'Arial',
@@ -51,7 +41,7 @@ const coverTextStyleList = [
         lineHeight: 1.4,
     },
     {
-        id: 4,
+        id: 3,
         top: '300px',
         left: '180px',
         fontStyle: 'Arial',
@@ -61,17 +51,7 @@ const coverTextStyleList = [
         lineHeight: 1.4,
     },
     {
-        id: 5,
-        top: '150px',
-        left: '50px',
-        fontStyle: 'Arial',
-        fontSize: '120px',
-        width: '1150px',
-        height: '520px',
-        lineHeight: 1.4,
-    },
-    {
-        id: 6,
+        id: 4,
         top: '120px',
         left: '50px',
         fontStyle: 'Arial',
@@ -81,7 +61,7 @@ const coverTextStyleList = [
         lineHeight: 1.4,
     },
     {
-        id: 7,
+        id: 5,
         top: '100px',
         left: '50px',
         fontStyle: 'Arial',
@@ -91,7 +71,7 @@ const coverTextStyleList = [
         lineHeight: 1.4,
     },
     {
-        id: 8,
+        id: 6,
         top: '520px',
         left: '130px',
         fontStyle: 'Arial',
@@ -101,7 +81,7 @@ const coverTextStyleList = [
         lineHeight: 1.4,
     },
     {
-        id: 9,
+        id: 7,
         top: '320px',
         left: '100px',
         fontStyle: 'Arial',
@@ -111,7 +91,7 @@ const coverTextStyleList = [
         lineHeight: 1.4,
     },
     {
-        id: 10,
+        id: 8,
         top: '420px',
         left: '160px',
         fontStyle: 'Arial',
@@ -122,7 +102,7 @@ const coverTextStyleList = [
         transform: 'rotate(6deg)',
     },
     {
-        id: 11,
+        id: 9,
         top: '320px',
         left: '100px',
         fontStyle: 'Arial',

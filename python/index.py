@@ -1,10 +1,11 @@
 from pathlib import Path
 import platform
-import shutil
+import send2trash
 
 from cover import goto_download_cover
 from flask import Flask, jsonify, request, send_from_directory
 from my_keyboard import paste_title,input_ai,search_xhs
+from copy_markdown import change_markdown
 
 app = Flask(__name__, static_folder="cover-generate/dist", static_url_path="")
 
@@ -86,6 +87,12 @@ def xhs_search():
     search_xhs()
     return jsonify({"status": "true"}), 200
 
+# 改变markdown内容
+@app.route('/change_markdown', methods=['POST'])
+def change_markdown_http():
+    change_markdown()
+    return jsonify({"status": "true"}), 200
+
 # 删除下载目录
 @app.route('/delete_download', methods=['POST'])
 def delete_download():
@@ -106,27 +113,26 @@ def delete_download():
     if not download_dir.exists():
         return jsonify({"status": "error", "message": "Download directory does not exist"}), 400
 
-    # 删除下载目录中的所有文件
+    # 删除下载目录中的所有文件，移动到回收站
     for file in download_dir.glob("*"):
         try:
-            if file.is_file():  # 只删除文件，避免递归删除非空目录
-                file.unlink()
+            if file.is_file():  # 只处理文件
+                send2trash.send2trash(str(file))  # 使用 send2trash 将文件移动到回收站
             elif file.is_dir():
                 # 如果你想删除目录及其内容，请确保这是你想要的行为
                 # 并且在生产环境中谨慎使用
-                shutil.rmtree(file)
-                pass  # 这里我们选择跳过目录
+                send2trash.send2trash(str(file))  # 使用 send2trash 将目录移动到回收站
         except Exception as e:
-            return jsonify({"status": "error", "message": f"Failed to delete {file}: {e}"}), 500
+            return jsonify({"status": "error", "message": f"Failed to move {file} to trash: {e}"}), 500
 
-    return jsonify({"status": "success"}), 200
+    return jsonify({"status": "success", "message": "All files moved to trash"}), 200
 
 
-if __name__ == "__main__":
-    # 清空 download 目录
-    current_dir = Path(__file__).resolve().parent
-    download_dir = current_dir / "download"
-    for file in download_dir.glob("*"):
-        file.unlink()
+# if __name__ == "__main__":
+#     # 清空 download 目录
+#     current_dir = Path(__file__).resolve().parent
+#     download_dir = current_dir / "download"
+#     for file in download_dir.glob("*"):
+#         file.unlink()
 
-    app.run(host="0.0.0.0", port=6174, debug=True)
+#     app.run(host="0.0.0.0", port=6174, debug=True)
