@@ -72,16 +72,6 @@ const coverTextStyleList = [
     },
     {
         id: 6,
-        top: '420px',
-        left: '120px',
-        fontStyle: 'Arial',
-        fontSize: '120px',
-        width: '1000px',
-        height: '720px',
-        lineHeight: 1.4,
-    },
-    {
-        id: 7,
         top: '120px',
         left: '50px',
         fontStyle: 'Arial',
@@ -91,7 +81,7 @@ const coverTextStyleList = [
         lineHeight: 1.4,
     },
     {
-        id: 8,
+        id: 7,
         top: '100px',
         left: '50px',
         fontStyle: 'Arial',
@@ -101,7 +91,7 @@ const coverTextStyleList = [
         lineHeight: 1.4,
     },
     {
-        id: 9,
+        id: 8,
         top: '520px',
         left: '130px',
         fontStyle: 'Arial',
@@ -111,7 +101,7 @@ const coverTextStyleList = [
         lineHeight: 1.4,
     },
     {
-        id: 10,
+        id: 9,
         top: '320px',
         left: '100px',
         fontStyle: 'Arial',
@@ -121,7 +111,7 @@ const coverTextStyleList = [
         lineHeight: 1.4,
     },
     {
-        id: 11,
+        id: 10,
         top: '420px',
         left: '160px',
         fontStyle: 'Arial',
@@ -132,7 +122,7 @@ const coverTextStyleList = [
         transform: 'rotate(6deg)',
     },
     {
-        id: 12,
+        id: 11,
         top: '320px',
         left: '100px',
         fontStyle: 'Arial',

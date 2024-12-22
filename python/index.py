@@ -1,9 +1,10 @@
 from pathlib import Path
 import platform
+import shutil
 
 from cover import goto_download_cover
 from flask import Flask, jsonify, request, send_from_directory
-from my_keyboard import paste_title,input_ai
+from my_keyboard import paste_title,input_ai,search_xhs
 
 app = Flask(__name__, static_folder="cover-generate/dist", static_url_path="")
 
@@ -79,6 +80,12 @@ def change_ai():
     input_ai()
     return jsonify({"status": "true"}), 200
 
+# 小红书搜索
+@app.route('/xhs_search', methods=['POST'])
+def xhs_search():
+    search_xhs()
+    return jsonify({"status": "true"}), 200
+
 # 删除下载目录
 @app.route('/delete_download', methods=['POST'])
 def delete_download():
@@ -107,7 +114,7 @@ def delete_download():
             elif file.is_dir():
                 # 如果你想删除目录及其内容，请确保这是你想要的行为
                 # 并且在生产环境中谨慎使用
-                # shutil.rmtree(file)
+                shutil.rmtree(file)
                 pass  # 这里我们选择跳过目录
         except Exception as e:
             return jsonify({"status": "error", "message": f"Failed to delete {file}: {e}"}), 500

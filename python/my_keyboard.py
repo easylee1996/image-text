@@ -30,7 +30,7 @@ def paste_title():
     except Exception as e:
         print("Error occurred: ", e)
 
-# 豆包自动输入
+# ai输入
 def input_ai():
     try:
         key = get_os_specific_keys()
@@ -44,5 +44,26 @@ def input_ai():
         # 回车
         keyboard.tap(Key.enter)
         
+    except Exception as e:
+        print("Error occurred: ", e)
+
+# 小红书搜索
+def search_xhs():
+    try:
+        key = get_os_specific_keys()
+
+        # 执行全选 (Ctrl+A 或 Command+A)
+        with keyboard.pressed(key):
+            keyboard.tap('a')
+
+        # 执行粘贴 (Ctrl+V 或 Command+V)
+        with keyboard.pressed(key):
+            keyboard.tap('v')
+
+        time.sleep(0.1)
+
+        # 回车
+        keyboard.tap(Key.enter)
+
     except Exception as e:
         print("Error occurred: ", e)

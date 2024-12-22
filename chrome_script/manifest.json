@@ -1,0 +1,20 @@
+{
+    "manifest_version": 3,
+    "name": "油猴脚本配套插件",
+    "version": "1.0",
+    "permissions": [
+        "tabs",
+        "activeTab"
+    ],
+    "host_permissions": [
+        "<all_urls>"
+    ],
+    "background": {
+        "service_worker": "background.js"
+    },
+    "externally_connectable": {
+        "matches": [
+            "https://ai.openvam.com/*"
+        ]
+    }
+}

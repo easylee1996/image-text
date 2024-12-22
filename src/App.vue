@@ -1,9 +1,9 @@
 <script setup>
 import { GM_xmlhttpRequest, GM_getResourceURL, GM_addValueChangeListener, GM_setValue, GM_getValue, GM_openInTab } from '$'
-import { ref, h, nextTick } from 'vue'
-import { getElementsByXPathAsync } from './utils/utils'
+import { ref, h, nextTick, onMounted } from 'vue'
+import { getElementsByXPathAsync, sleep } from './utils/utils'
 import Cookies from 'js-cookie'
-import { throttle } from 'lodash'
+import { throttle, debounce } from 'lodash'
 
 // 变量
 const now_task_keyword = ref('') // 当前任务关键词
@@ -19,6 +19,10 @@ let save_is_change_content = false
 // 小红书
 const idToImageNumMap = new Map()
 const imgMinNum = ref(0)
+// 标题相关
+const task_titles = ref([]) // 当前任务AI生成标题列表
+const now_title = ref('')
+const task_titles_loading = ref(false) // 当前任务AI生成标题列表加载状态
 // ========================================== 公用方法 ===========================================
 // 自定义post
 function my_post(url, data, headers = null) {
@@ -36,6 +40,7 @@ function my_post(url, data, headers = null) {
             data: JSON.stringify(data),
             onload: function (response) {
                 if (response.status === 200) {
+                    console.log("my_post请求发送成功:", response.responseText)
                     resolve(JSON.parse(response.responseText))
                 } else {
                     reject(new Error(`Failed to fetch image: ${response.statusText}`))
@@ -60,6 +65,7 @@ function my_get(url) {
             },
             onload: function (response) {
                 if (response.status === 200) {
+                    console.log("my_get请求发送成功:", response.responseText)
                     resolve(JSON.parse(response.responseText))
                 } else {
                     reject(new Error(`Failed to fetch image: ${response.statusText}`))
@@ -74,6 +80,8 @@ function my_get(url) {
 interceptRequest()
 // 监听请求
 function interceptRequest() {
+    // 限制领取任务反复执行
+    const get_task_limit = debounce(get_task, 1000)
     // 返回劫持
     const originOpen = XMLHttpRequest.prototype.open
     XMLHttpRequest.prototype.open = function (_, url) {
@@ -106,13 +114,16 @@ function interceptRequest() {
 
                     // 自动提交审核-监听事件
                     listen_save_check()
+
+                    // 进入详情页的默认操作
+                    detail_init_todos()
                 }
             })
         }
         // 列表页面
         if (url.includes('/article/recreate/tasks')) {
             // 先获取任务
-            get_task()
+            // get_task_limit()
             this.addEventListener('readystatechange', function () {
                 if (this.readyState === 4) {
                     // 添加事件
@@ -417,7 +428,8 @@ async function add_get_task_button() {
         const task_50_button = document.createElement('button')
         task_50_button.textContent = '领取任务(50条)'
         task_50_button.classList.add('my-get-task-button') // 可以添加样式类
-        task_50_button.addEventListener('click', () => get_task())
+        const get_task_limit = debounce(get_task, 1000)
+        task_50_button.addEventListener('click', () => get_task_limit())
 
         my_button_div.appendChild(task_50_button)
         formEL.appendChild(my_button_div)
@@ -439,9 +451,6 @@ async function get_task(num = 50) {
 }
 
 // ========================================== 标题相关处理 ===========================================
-const task_titles = ref([]) // 当前任务AI生成标题列表
-const now_title = ref('')
-const task_titles_loading = ref(false) // 当前任务AI生成标题列表加载状态
 // 通过AI获取延伸话题
 async function getTitles() {
     task_titles_loading.value = true
@@ -465,10 +474,10 @@ async function getTitles() {
 }
 
 // 点击修改标题
-function changeTitle(title) {
+async function changeTitle(title) {
     now_title.value = title
 
-    inputTitle()
+    await inputTitle()
 }
 
 // 通过python模拟输入标题，js无法改变react的state
@@ -510,90 +519,91 @@ async function inputTitle() {
 // }
 // ========================================== AI生成文章相关 ===========================================
 // 跳转文心一言
-function goto_yiyan() {
-    const yiyan_url = `https://yiyan.baidu.com/`
-    window.open(yiyan_url)
+async function goto_yiyan() {
     // GM_openInTab(yiyan_url, { active: false, insert: true, setParent: true })
-
+    await navigator.clipboard.writeText(now_task_keyword.value)
+    const urlPart = 'yiyan.baidu.com';
+    chrome.runtime.sendMessage('lgmogdnlnnnlkcmdbofiniokkfblflff', { action: 'activateTab', urlPart: urlPart }, (response) => {
+        GM_setValue('doubao', 'true')
+    });
 }
 // 跳转豆包
-function goto_doubao() {
-    const url = `https://www.doubao.com/`
-    window.open(url)
-    // GM_openInTab(yiyan_url, { active: false, insert: true, setParent: true })
-
+async function goto_doubao() {
+    await navigator.clipboard.writeText(now_task_keyword.value)
+    const urlPart = 'www.doubao.com';
+    chrome.runtime.sendMessage('lgmogdnlnnnlkcmdbofiniokkfblflff', { action: 'activateTab', urlPart: urlPart }, (response) => {
+        GM_setValue('doubao', 'true')
+    });
 }
 // 跳转通义千问
-function goto_qianwen() {
-    const url = `https://tongyi.aliyun.com/`
-    window.open(url)
+async function goto_qianwen() {
     // GM_openInTab(yiyan_url, { active: false, insert: true, setParent: true })
+    await navigator.clipboard.writeText(now_task_keyword.value)
+    const urlPart = 'tongyi.aliyun.com';
+    chrome.runtime.sendMessage('lgmogdnlnnnlkcmdbofiniokkfblflff', { action: 'activateTab', urlPart: urlPart }, (response) => {
+        GM_setValue('tongyi', 'true')
+    });
 
 }
-// 监听来自详情页的标题
-listen_title()
-async function listen_title() {
-    GM_setValue('ai_content', '')
-    GM_setValue('ai_loaded', 'false')
-    // 监听ai网页加载完成
-    if (location.href.includes('ai.openvam.com')) {
-        GM_addValueChangeListener('ai_loaded', function (name, old_value, new_value, remote) {
-            if (new_value === 'true') {
-                GM_setValue('ai_content', now_task_keyword.value)
-                GM_setValue('ai_loaded', 'false')
+// 监听从主页面跳转过来，自动执行输入操作
+listen_auto_input()
+async function listen_auto_input() {
+    // 默认设置为false，避免设置为true的时候，页面本身没打开，导致一直为true
+    GM_setValue('xhs', 'false')
+    GM_setValue('doubao', 'false')
+    GM_setValue('yiyan', 'false')
+    GM_setValue('tongyi', 'false')
+
+    // 监听来自主页的标题 - 小红书
+    if (location.href.includes('www.xiaohongshu.com')) {
+        GM_addValueChangeListener('xhs', async (name, old_value, new_value, remote) => {
+            if (new_value == 'true') {
+                const editableDiv = (await getElementsByXPathAsync("//input[@id='search-input']"))[0]
+                // 两次聚焦，避免第一次聚焦存在延迟，导致全选选中了整个网页
+                editableDiv.focus()
+                editableDiv.focus()
+                await my_post(import.meta.env.VITE_API_URL + '/xhs_search')
+                GM_setValue('xhs', 'false')
+            }
+        })
+    }
+    // 监听来自主页的标题 - 豆包
+    if (location.href.includes('www.doubao.com')) {
+        GM_addValueChangeListener('doubao', async (name, old_value, new_value, remote) => {
+            if (new_value == 'true') {
+                const editableDiv = (await getElementsByXPathAsync("//*[@id='root']/div[1]/div/div[2]/div[1]/div[1]/div/div/div[3]/div/div/div/div[3]/div[1]/div/div[1]/div/textarea"))[0]
+                // 两次聚焦，避免第一次聚焦存在延迟，导致全选选中了整个网页
+                editableDiv.focus()
+                editableDiv.focus()
+                await my_post(import.meta.env.VITE_API_URL + '/input_ai')
+                GM_setValue('doubao', 'false')
             }
         })
     }
     // 监听来自主页的标题 - 文心一言
     if (location.href.includes('yiyan.baidu.com')) {
-        GM_addValueChangeListener('ai_content', async function (name, old_value, new_value, remote) {
-            if (new_value) {
-                // contenteditable文本，输入内容，这是一种方法
-                const editableDiv = document.querySelector('.yc-editor')
-                if (editableDiv) {
-                    // python 模拟输入
-                    await navigator.clipboard.writeText(new_value)
-                    await my_post(import.meta.env.VITE_API_URL + '/input_ai')
-                }
-                GM_setValue('ai_content', '')
-            }
-        })
-
-        // 是由这里触发整个流程的，前面都是在设置监听器
-        await getElementsByXPathAsync("//span[@id='sendBtn']")
-        GM_setValue('ai_loaded', 'true')
-    }
-    // 监听来自主页的标题 - 豆包
-    if (location.href.includes('www.doubao.com')) {
-        GM_addValueChangeListener('ai_content', async function (name, old_value, new_value, remote) {
-            if (new_value) {
-                const editableDiv = (await getElementsByXPathAsync("//*[@id='root']/div[1]/div/div[2]/div[1]/div[1]/div/div/div[3]/div/div/div/div[3]/div[1]/div/div[1]/div/textarea"))[0]
-                // python 模拟输入
-                await navigator.clipboard.writeText(new_value)
+        GM_addValueChangeListener('yiyan', async (name, old_value, new_value, remote) => {
+            if (new_value == 'true') {
+                const editableDiv = (await getElementsByXPathAsync("//*[@id='eb_model_footer']/div[4]/div[3]/div/div/div/div[3]/div[1]/div/div"))[0]
+                // 两次聚焦，避免第一次聚焦存在延迟，导致全选选中了整个网页
+                editableDiv.focus()
+                editableDiv.focus()
                 await my_post(import.meta.env.VITE_API_URL + '/input_ai')
+                GM_setValue('yiyan', 'false')
             }
-            GM_setValue('ai_content', '')
         })
-
-        await getElementsByXPathAsync("//button[@id='flow-end-msg-send']")
-        GM_setValue('ai_loaded', 'true')
     }
-    // 监听来自主页的标题 - 通义千问
+    // 监听来自主页的标题 - 通义千问    存在偶发无法注入脚本问题，后期再解决，暂时没有使用千问进行生成
     if (location.href.includes('tongyi.aliyun.com')) {
-        GM_addValueChangeListener('ai_content', async function (name, old_value, new_value, remote) {
-            if (new_value) {
+        GM_addValueChangeListener('tongyi', async (name, old_value, new_value, remote) => {
+            if (new_value == 'true') {
                 const editableDiv = (await getElementsByXPathAsync("//*[@id='tongyiPageLayout']/div[3]/div/div[2]/div[1]/div[3]/div[2]/div/div[2]/div/textarea"))[0]
                 editableDiv.focus()
                 editableDiv.focus()
-                // python 模拟输入
-                await navigator.clipboard.writeText(new_value)
                 await my_post(import.meta.env.VITE_API_URL + '/input_ai')
+                GM_setValue('tongyi', 'false')
             }
-            GM_setValue('ai_content', '')
         })
-
-        await getElementsByXPathAsync("//*[@id='tongyiPageLayout']/div[3]/div/div[2]/div[1]/div[3]/div[2]/div/div[3]")
-        GM_setValue('ai_loaded', 'true')
     }
 }
 
@@ -632,12 +642,12 @@ async function abandon_task() {
 
 // ========================================== 小红书相关 ===========================================
 // 详情页跳转到小红书
-function goto_xhs(keyword) {
-    if (keyword) {
-        window.open(`https://www.xiaohongshu.com/search_result?keyword=${keyword}`)
-    } else {
-        window.open(`https://www.xiaohongshu.com/search_result?keyword=${now_task_keyword.value}`)
-    }
+async function goto_xhs(keyword) {
+    await navigator.clipboard.writeText(now_task_keyword.value)
+    const urlPart = 'www.xiaohongshu.com';
+    chrome.runtime.sendMessage('lgmogdnlnnnlkcmdbofiniokkfblflff', { action: 'activateTab', urlPart: urlPart }, (response) => {
+        GM_setValue('xhs', 'true')
+    });
 }
 // 监听页面变化，页面滚动后需要重新加载
 function setupMutationObserver() {
@@ -679,16 +689,6 @@ function changeXhsListStyle() {
         }
     })
 }
-// 进入小红书，点击搜索按钮，再触发一遍查询列表，默认的小红书列表请求太快，监听无法生效，所以需要手动点击执行一次
-(async () => {
-    if (location.href.includes('xiaohongshu.com')) {
-        const search_btn_el = (await getElementsByXPathAsync("//div[@class='search-icon']"))[0]
-        search_btn_el.click()
-
-        // 监听下载插件点击事件
-        add_delete_download_btn_listen()
-    }
-})()
 // ========================================== 其它功能处理 ===========================================
 // 是否显示menu菜单
 const show_menu = ref(true)
@@ -724,18 +724,54 @@ async function add_delete_download_btn_listen() {
         // 将按钮插入到第二个位置
         const existingButtons = Array.from(btns.children);
 
-        if (existingButtons.length < 2) {
+        if (existingButtons.length < 3) {
             btns.appendChild(my_button_div);
         } else {
-            const secondButton = existingButtons[1];
+            const secondButton = existingButtons[2];
             btns.insertBefore(my_button_div, secondButton);
         }
     })
 }
+// 进入小红书，添加点击下载按钮
+if (location.href.includes('xiaohongshu.com')) {
+    // 监听下载插件点击事件
+    add_delete_download_btn_listen()
+}
+
+// 进入详情页的默认操作
+async function detail_init_todos() {
+    // 1.设置标题
+    await changeTitle(task_titles.value[0])
+
+    ElMessage.success('即将跳转到小红书...')
+
+    await sleep(1000)
+
+    // 2.跳转小红书
+    goto_xhs()
+
+    // 3.修改封面
+    change_cover()
+
+}
+
+onMounted(() => {
+    // 详情页面给输入框的按键监听了一些东西，导致无法左右移动，这里处理一下
+    const inputElements = document.querySelectorAll('.el-input__inner'); // 获取输入框的 DOM 元素
+    inputElements.forEach(inputElement => {
+        inputElement.addEventListener('keyup', (event) => {
+            event.stopPropagation()
+        }, true)
+        inputElement.addEventListener('keydown', (event) => {
+            event.stopPropagation()
+        }, true)
+    })
+})
 </script>
 
 <template>
     <div class="image-text-container" v-if="show_menu">
+
         <el-button type="success" @click="getTitles()" v-loading="task_titles_loading"
             :disabled="task_titles_loading">获取延伸标题</el-button>
         <div class="title-list">
@@ -752,7 +788,7 @@ async function add_delete_download_btn_listen() {
             :disabled="cover_loading">修改封面</el-button>
         <el-button type="warning" @click="goto_xhs()">跳转到小红书</el-button>
         <el-button type="primary" @click="goto_doubao()">跳转豆包</el-button>
-        <el-button type="primary" @click="goto_qianwen()">跳转通义千问</el-button>
+        <!-- <el-button type="primary" @click="goto_qianwen()">跳转通义千问</el-button> -->
         <el-button type="primary" @click="goto_yiyan()">跳转文心一言</el-button>
         <el-button type="danger" @click="abandon_task()">放弃任务</el-button>
         <!-- <el-button type="danger" @click="delete_download_dir()">删除下载目录</el-button> -->

@@ -46,3 +46,8 @@ export function getElementsByXPathAsync(xpath, delayPerMs = 500) {
         }, delayPerMs)
     })
 }
+
+// 定义 sleep 函数
+export function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
