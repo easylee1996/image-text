@@ -11,5 +11,5 @@ waitress-serve --port=6174 --threads=3 index:app
 Mac:
 
 ```shell
-gunicorn --workers 2 --threads 2 --bind 0.0.0.0:8000 myapp:app
+gunicorn --workers 2 --threads 2 --bind 0.0.0.0:6174 index:app
 ```
