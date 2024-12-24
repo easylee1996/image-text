@@ -1,0 +1,4 @@
+packages: 
+  - 'cover-generate'
+  - 'main-script'
+  - 'xhs-download'

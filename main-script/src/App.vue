@@ -5,6 +5,8 @@ import { getElementsByXPathAsync, sleep } from './utils/utils'
 import Cookies from 'js-cookie'
 import { throttle, debounce } from 'lodash'
 
+console.log(111111111111111, import.meta.env)
+
 // 变量
 const now_task_keyword = ref('') // 当前任务关键词
 let token = Cookies.get('enterprise_yyb_token')
@@ -33,14 +35,14 @@ function my_post(url, data, headers = null) {
             headers: headers
                 ? headers
                 : {
-                    'Content-Type': 'application/json',
-                    Token: token,
-                    Teamid: Teamid,
-                },
+                      'Content-Type': 'application/json',
+                      Token: token,
+                      Teamid: Teamid,
+                  },
             data: JSON.stringify(data),
             onload: function (response) {
                 if (response.status === 200) {
-                    console.log("my_post请求发送成功:", response.responseText)
+                    console.log('my_post请求发送成功:', response.responseText)
                     resolve(JSON.parse(response.responseText))
                 } else {
                     reject(new Error(`Failed to fetch image: ${response.statusText}`))
@@ -65,7 +67,7 @@ function my_get(url) {
             },
             onload: function (response) {
                 if (response.status === 200) {
-                    console.log("my_get请求发送成功:", response.responseText)
+                    console.log('my_get请求发送成功:', response.responseText)
                     resolve(JSON.parse(response.responseText))
                 } else {
                     reject(new Error(`Failed to fetch image: ${response.statusText}`))
@@ -143,7 +145,6 @@ function interceptRequest() {
                         idToImageNumMap.set(item.id, item?.note_card?.image_list?.length || 0)
                     })
                 }
-
             })
         }
         originOpen.apply(this, arguments)
@@ -240,7 +241,7 @@ async function change_cover() {
     cover_loading.value = true
     ElMessage.warning('正在修改封面...')
     // 0.首先创建封面图片
-    const result0 = await my_post(import.meta.env.VITE_API_URL + '/api/template/submit_title', { title: now_title.value })
+    const result0 = await my_post(import.meta.env.VITE_PTYHON_API_URL + '/api/template/submit_title', { title: now_title.value })
     console.log(result0)
 
     // 1.获取阿里云 oss 地址
@@ -248,7 +249,7 @@ async function change_cover() {
 
     // 2.上传到阿里云 oss
     // const filePath = 'file:///Users/miao/Downloads/cover.webp';
-    const filePath = import.meta.env.VITE_API_URL + '/api/cover/' + result0.filename
+    const filePath = import.meta.env.VITE_PTYHON_API_URL + '/api/cover/' + result0.filename
     const imageBlob = await fetchImageAsBlob(filePath)
     await put_image_to_oss(result1, imageBlob)
 
@@ -482,22 +483,20 @@ async function changeTitle(title) {
 
 // 通过python模拟输入标题，js无法改变react的state
 async function inputTitle() {
-    const title_el = (await getElementsByXPathAsync("/html/body/div[1]/section/div[2]/section/main/div/div/div[1]/div/div/div[1]/div[1]/div[2]/div[1]/div/div/div[3]/div"))[0]
+    const title_el = (await getElementsByXPathAsync('/html/body/div[1]/section/div[2]/section/main/div/div/div[1]/div/div/div[1]/div[1]/div[2]/div[1]/div/div/div[3]/div'))[0]
     title_el.focus()
     title_el.focus()
 
     // 复制标题到剪贴板
     await navigator.clipboard.writeText(now_title.value)
 
-    await my_post(import.meta.env.VITE_API_URL + '/paste_title')
-
+    await my_post(import.meta.env.VITE_PTYHON_API_URL + '/paste_title')
 }
 // 监听文本框输入变化   暂时无法实现，因为输入会报错，导致代码无法执行
 // listen_title_change()
 // async function listen_title_change() {
 //     // 获取可编辑的 div 元素
 //     const editableDiv = (await getElementsByXPathAsync("(//div[@class='w-e-scroll'])[1]//span[text()]"))[0]
-
 
 //     // 创建 MutationObserver 实例
 //     const observer = new MutationObserver(function (mutations) {
@@ -522,28 +521,27 @@ async function inputTitle() {
 async function goto_yiyan() {
     // GM_openInTab(yiyan_url, { active: false, insert: true, setParent: true })
     await navigator.clipboard.writeText(now_task_keyword.value)
-    const urlPart = 'yiyan.baidu.com';
-    chrome.runtime.sendMessage('lgmogdnlnnnlkcmdbofiniokkfblflff', { action: 'activateTab', urlPart: urlPart }, (response) => {
+    const urlPart = 'yiyan.baidu.com'
+    chrome.runtime.sendMessage('lgmogdnlnnnlkcmdbofiniokkfblflff', { action: 'activateTab', urlPart: urlPart }, response => {
         GM_setValue('yiyan', 'true')
-    });
+    })
 }
 // 跳转豆包
 async function goto_doubao() {
     await navigator.clipboard.writeText(now_task_keyword.value)
-    const urlPart = 'www.doubao.com';
-    chrome.runtime.sendMessage('lgmogdnlnnnlkcmdbofiniokkfblflff', { action: 'activateTab', urlPart: urlPart }, (response) => {
+    const urlPart = 'www.doubao.com'
+    chrome.runtime.sendMessage('lgmogdnlnnnlkcmdbofiniokkfblflff', { action: 'activateTab', urlPart: urlPart }, response => {
         GM_setValue('doubao', 'true')
-    });
+    })
 }
 // 跳转通义千问
 async function goto_qianwen() {
     // GM_openInTab(yiyan_url, { active: false, insert: true, setParent: true })
     await navigator.clipboard.writeText(now_task_keyword.value)
-    const urlPart = 'tongyi.aliyun.com';
-    chrome.runtime.sendMessage('lgmogdnlnnnlkcmdbofiniokkfblflff', { action: 'activateTab', urlPart: urlPart }, (response) => {
+    const urlPart = 'tongyi.aliyun.com'
+    chrome.runtime.sendMessage('lgmogdnlnnnlkcmdbofiniokkfblflff', { action: 'activateTab', urlPart: urlPart }, response => {
         GM_setValue('tongyi', 'true')
-    });
-
+    })
 }
 // 监听从主页面跳转过来，自动执行输入操作
 listen_auto_input()
@@ -562,7 +560,7 @@ async function listen_auto_input() {
                 // 两次聚焦，避免第一次聚焦存在延迟，导致全选选中了整个网页
                 editableDiv.focus()
                 editableDiv.focus()
-                await my_post(import.meta.env.VITE_API_URL + '/xhs_search')
+                await my_post(import.meta.env.VITE_PTYHON_API_URL + '/xhs_search')
                 GM_setValue('xhs', 'false')
             }
         })
@@ -571,11 +569,13 @@ async function listen_auto_input() {
     if (location.href.includes('www.doubao.com')) {
         GM_addValueChangeListener('doubao', async (name, old_value, new_value, remote) => {
             if (new_value == 'true') {
-                const editableDiv = (await getElementsByXPathAsync("//*[@id='root']/div[1]/div/div[2]/div[1]/div[1]/div/div/div[3]/div/div/div/div[3]/div[1]/div/div[1]/div/textarea"))[0]
+                const editableDiv = (
+                    await getElementsByXPathAsync("//*[@id='root']/div[1]/div/div[2]/div[1]/div[1]/div/div/div[3]/div/div/div/div[3]/div[1]/div/div[1]/div/textarea")
+                )[0]
                 // 两次聚焦，避免第一次聚焦存在延迟，导致全选选中了整个网页
                 editableDiv.focus()
                 editableDiv.focus()
-                await my_post(import.meta.env.VITE_API_URL + '/input_ai')
+                await my_post(import.meta.env.VITE_PTYHON_API_URL + '/input_ai')
                 GM_setValue('doubao', 'false')
             }
         })
@@ -588,7 +588,7 @@ async function listen_auto_input() {
                 // 两次聚焦，避免第一次聚焦存在延迟，导致全选选中了整个网页
                 editableDiv.focus()
                 editableDiv.focus()
-                await my_post(import.meta.env.VITE_API_URL + '/input_ai')
+                await my_post(import.meta.env.VITE_PTYHON_API_URL + '/input_ai')
                 GM_setValue('yiyan', 'false')
             }
         })
@@ -600,7 +600,7 @@ async function listen_auto_input() {
                 const editableDiv = (await getElementsByXPathAsync("//*[@id='tongyiPageLayout']/div[3]/div/div[2]/div[1]/div[3]/div[2]/div/div[2]/div/textarea"))[0]
                 editableDiv.focus()
                 editableDiv.focus()
-                await my_post(import.meta.env.VITE_API_URL + '/input_ai')
+                await my_post(import.meta.env.VITE_PTYHON_API_URL + '/input_ai')
                 GM_setValue('tongyi', 'false')
             }
         })
@@ -631,7 +631,6 @@ async function listen_save_check() {
         comfirm_twice_el.click()
         await sleep(2000)
 
-
         // 返回列表页
         const goto_list_el = (await getElementsByXPathAsync("//div[@class='ant-modal-confirm-btns']//span[text()='前往我的任务']/.."))[0]
         goto_list_el.click()
@@ -652,10 +651,10 @@ async function abandon_task() {
 // 详情页跳转到小红书
 async function goto_xhs(keyword) {
     await navigator.clipboard.writeText(now_task_keyword.value)
-    const urlPart = 'www.xiaohongshu.com';
-    chrome.runtime.sendMessage('lgmogdnlnnnlkcmdbofiniokkfblflff', { action: 'activateTab', urlPart: urlPart }, (response) => {
+    const urlPart = 'www.xiaohongshu.com'
+    chrome.runtime.sendMessage(import.meta.env.VITE_CHROME_PLUGIN_ID, { action: 'activateTab', urlPart: urlPart }, response => {
         GM_setValue('xhs', 'true')
-    });
+    })
 }
 // 监听页面变化，页面滚动后需要重新加载
 function setupMutationObserver() {
@@ -709,7 +708,6 @@ function show_menu_if() {
     }
 }
 
-
 // 进入详情页的默认操作
 async function detail_init_todos() {
     // 1.设置标题
@@ -724,28 +722,79 @@ async function detail_init_todos() {
 
     // 3.修改封面
     change_cover()
+}
 
+// 豆包添加复制按钮
+add_doubao_copy_button()
+async function add_doubao_copy_button() {
+    if (location.href.includes('www.doubao.com')) {
+        // 创建一个 MutationObserver 实例
+        const observer = new MutationObserver(mutationsList => {
+            mutationsList.forEach(mutation => {
+                if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+                    mutation.addedNodes.forEach(node => {
+                        if (node.nodeType === Node.ELEMENT_NODE) {
+                            const copyButton = node.querySelector("button[data-testid='message_action_copy']")
+                            if (copyButton && !copyButton.hasAttribute('copy-button-added')) {
+                                // 创建并插入新的按钮
+                                const button = document.createElement('button')
+                                button.innerText = '复制文案'
+                                button.className = 'copy-markdown-button'
+                                button.addEventListener('click', async () => {
+                                    copyButton.click()
+                                    const result = await my_post(import.meta.env.VITE_PTYHON_API_URL + '/change_markdown')
+                                    ElMessage.success('复制完成')
+                                })
+                                copyButton.parentNode.appendChild(button)
+                                copyButton.parentNode.style.height = '20px'
+                                copyButton.setAttribute('copy-button-added', 'true')
+                            }
+                        }
+                    })
+                }
+            })
+        })
+
+        // 配置观察选项
+        const config = { childList: true, subtree: true }
+
+        // 选择目标节点（通常是包含动态内容的父容器）
+        const targetNode = (await getElementsByXPathAsync("//div[contains(@class,'container')]/div[contains(@class,'inter-')]//div[contains(@class,'inter-')]"))[0]
+
+        // 开始观察
+        if (targetNode) {
+            observer.observe(targetNode, config)
+        } else {
+            console.error('Target node not found')
+        }
+    }
 }
 
 onMounted(() => {
     // 详情页面给输入框的按键监听了一些东西，导致无法左右移动，这里处理一下
-    const inputElements = document.querySelectorAll('.el-input__inner'); // 获取输入框的 DOM 元素
+    const inputElements = document.querySelectorAll('.el-input__inner') // 获取输入框的 DOM 元素
     inputElements.forEach(inputElement => {
-        inputElement.addEventListener('keyup', (event) => {
-            event.stopPropagation()
-        }, true)
-        inputElement.addEventListener('keydown', (event) => {
-            event.stopPropagation()
-        }, true)
+        inputElement.addEventListener(
+            'keyup',
+            event => {
+                event.stopPropagation()
+            },
+            true,
+        )
+        inputElement.addEventListener(
+            'keydown',
+            event => {
+                event.stopPropagation()
+            },
+            true,
+        )
     })
 })
 </script>
 
 <template>
     <div class="image-text-container" v-if="show_menu">
-
-        <el-button type="success" @click="getTitles()" v-loading="task_titles_loading"
-            :disabled="task_titles_loading">获取延伸标题</el-button>
+        <el-button type="success" @click="getTitles()" v-loading="task_titles_loading" :disabled="task_titles_loading">获取延伸标题</el-button>
         <div class="title-list">
             <div class="title-one" v-for="item in task_titles" :key="item" @click="changeTitle(item)">
                 {{ item }}
@@ -756,15 +805,12 @@ onMounted(() => {
             <el-button size="small" @click="changeTitle(now_title)">修改标题</el-button>
         </div>
 
-        <el-button type="danger" @click="change_cover()" v-loading="cover_loading"
-            :disabled="cover_loading">修改封面</el-button>
+        <el-button type="danger" @click="change_cover()" v-loading="cover_loading" :disabled="cover_loading">修改封面</el-button>
         <el-button type="warning" @click="goto_xhs()">跳转到小红书</el-button>
         <el-button type="primary" @click="goto_doubao()">跳转豆包</el-button>
         <!-- <el-button type="primary" @click="goto_qianwen()">跳转通义千问</el-button> -->
         <el-button type="primary" @click="goto_yiyan()">跳转文心一言</el-button>
         <el-button type="danger" @click="abandon_task()">放弃任务</el-button>
-
-
     </div>
     <!-- <el-dialog v-model="dialogVisible" title="" width="100%" :destroy-on-close="true">
         <div class="dialog-content"></div>
@@ -796,7 +842,7 @@ onMounted(() => {
         margin-bottom: 3px;
     }
 
-    .el-button+.el-button {
+    .el-button + .el-button {
         margin-left: 0px;
     }
 
@@ -813,8 +859,6 @@ onMounted(() => {
             margin-bottom: 5px;
         }
     }
-
-
 }
 </style>
 <style>
@@ -924,5 +968,20 @@ onMounted(() => {
     cursor: pointer;
     background-color: crimson;
     color: #fff;
+}
+.copy-markdown-button {
+    width: 120px;
+    height: 30px;
+    background-color: #0099ff;
+    color: #fff;
+    font-size: 16px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 5px;
+    border: none;
+    cursor: pointer;
+    overflow: visible;
+    z-index: 999;
 }
 </style>

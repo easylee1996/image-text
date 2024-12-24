@@ -1,13 +1,13 @@
-from pathlib import Path
 import platform
-import send2trash
+from pathlib import Path
 
+import send2trash
+from copy_markdown import change_markdown
 from cover import goto_download_cover
 from flask import Flask, jsonify, request, send_from_directory
-from my_keyboard import paste_title,input_ai,search_xhs
-from copy_markdown import change_markdown
+from my_keyboard import input_ai, paste_title, search_xhs
 
-app = Flask(__name__, static_folder="cover-generate/dist", static_url_path="")
+app = Flask(__name__, static_folder="dist", static_url_path="")
 
 
 # 全局设置 CORS 头部
@@ -29,7 +29,7 @@ def handle_options(path):
     return response, 200
 
 
-# 定义 POST 接口
+# 生成封面并返回标题
 @app.route("/api/template/submit_title", methods=["POST"])
 async def submit_title():
     if request.method == "POST":
@@ -69,32 +69,37 @@ def serve_cover(filename):
 def serve():
     return send_from_directory(app.static_folder, "index.html")
 
+
 # 切换标题
-@app.route('/paste_title', methods=['POST'])
+@app.route("/paste_title", methods=["POST"])
 def change_title():
     paste_title()
     return jsonify({"status": "true"}), 200
 
+
 # 豆包模拟输入
-@app.route('/input_ai', methods=['POST'])
+@app.route("/input_ai", methods=["POST"])
 def change_ai():
     input_ai()
     return jsonify({"status": "true"}), 200
 
+
 # 小红书搜索
-@app.route('/xhs_search', methods=['POST'])
+@app.route("/xhs_search", methods=["POST"])
 def xhs_search():
     search_xhs()
     return jsonify({"status": "true"}), 200
 
+
 # 改变markdown内容
-@app.route('/change_markdown', methods=['POST'])
+@app.route("/change_markdown", methods=["POST"])
 def change_markdown_http():
     change_markdown()
     return jsonify({"status": "true"}), 200
 
+
 # 删除下载目录
-@app.route('/delete_download', methods=['POST'])
+@app.route("/delete_download", methods=["POST"])
 def delete_download():
     # 检测操作系统类型
     os_name = platform.system()
@@ -107,11 +112,21 @@ def delete_download():
         download_dir = Path.home() / "Downloads"
     else:
         # 对于其他操作系统，你可以选择不执行任何操作，或者指定一个默认路径
-        return jsonify({"status": "unsupported_os", "message": "Unsupported operating system"}), 400
+        return (
+            jsonify(
+                {"status": "unsupported_os", "message": "Unsupported operating system"}
+            ),
+            400,
+        )
 
     # 确保目录存在
     if not download_dir.exists():
-        return jsonify({"status": "error", "message": "Download directory does not exist"}), 400
+        return (
+            jsonify(
+                {"status": "error", "message": "Download directory does not exist"}
+            ),
+            400,
+        )
 
     # 删除下载目录中的所有文件，移动到回收站
     for file in download_dir.glob("*"):
@@ -123,7 +138,15 @@ def delete_download():
                 # 并且在生产环境中谨慎使用
                 send2trash.send2trash(str(file))  # 使用 send2trash 将目录移动到回收站
         except Exception as e:
-            return jsonify({"status": "error", "message": f"Failed to move {file} to trash: {e}"}), 500
+            return (
+                jsonify(
+                    {
+                        "status": "error",
+                        "message": f"Failed to move {file} to trash: {e}",
+                    }
+                ),
+                500,
+            )
 
     return jsonify({"status": "success", "message": "All files moved to trash"}), 200
 

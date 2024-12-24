@@ -62,10 +62,15 @@ export default defineConfig({
             userscript: {
                 icon: 'https://vitejs.dev/logo.svg',
                 namespace: 'npm/vite-plugin-monkey',
-                match: ['http*://ai.openvam.com/*', 'http*://*.chuangkit.com/*', 'http*://yiyan.baidu.com/*', 'http*://*.xiaohongshu.com/*', 'http*://*.doubao.com/*', 'http*://tongyi.aliyun.com/'],
+                match: [
+                    'http*://ai.openvam.com/*',
+                    'http*://*.chuangkit.com/*',
+                    'http*://yiyan.baidu.com/*',
+                    'http*://*.xiaohongshu.com/*',
+                    'http*://*.doubao.com/*',
+                    'http*://tongyi.aliyun.com/',
+                ],
                 connect: ['api.coze.cn', 'yyb-api.yilancloud.com', 'vam-img.oss-cn-beijing.aliyuncs.com', 'vam-material.oss-cn-beijing.aliyuncs.com', 'localhost'], // 不能填写 http 协议和后缀，只能填纯域名
-                resource: ['file:///Users/miao/Downloads/1.webp'],
-                // 'run-at': 'document-start',
             },
             build: {
                 externalGlobals: {
