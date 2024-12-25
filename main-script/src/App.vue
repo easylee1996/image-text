@@ -95,7 +95,7 @@ function my_get(url) {
     })
 }
 interceptRequest()
-// 监听请求
+// 劫持请求
 function interceptRequest() {
     // 限制领取任务反复执行
     const get_task_limit = debounce(get_task, 1000)
@@ -186,18 +186,6 @@ function interceptRequest() {
         }
         return originSend.apply(this, arguments)
     }
-}
-// 模拟react input change，直接变更input的value值是不会生效的,仅限于input标签可以生效
-function changeReactInputValue(inputDom, newText) {
-    let lastValue = inputDom.value
-    inputDom.value = newText
-    let event = new Event('input', { bubbles: true })
-    event.simulated = true
-    let tracker = inputDom._valueTracker
-    if (tracker) {
-        tracker.setValue(lastValue)
-    }
-    inputDom.dispatchEvent(event)
 }
 // ========================================== 封面图片处理 ===========================================
 /**
@@ -416,29 +404,6 @@ async function add_get_task_button() {
         const my_button_div = document.createElement('div')
         my_button_div.classList.add('my-get-task-button-div')
 
-        // 创建免答题按钮
-        // const get_task_button_no_question = document.createElement('button')
-        // get_task_button_no_question.textContent = '领取任务(免答题)'
-        // get_task_button_no_question.classList.add('my-get-task-button') // 可以添加样式类
-        // get_task_button_no_question.addEventListener('click', async event => {
-        //     const max_task_num_input = (await getElementsByXPathAsync("//input[@id='max_task_num']"))[0]
-        //     const max_task_num = max_task_num_input.value
-
-        //     const result = await my_post('https://yyb-api.yilancloud.com/api/article/v1/article/creative/alloc', {
-        //         strategy: 0,
-        //         max_task_num: max_task_num,
-        //         article_project_id: now_page_detail_info.article_project_id,
-        //     })
-
-        //     if (!result.data) {
-        //         ElMessage.error(result.msg)
-        //         return
-        //     }
-        //     ElMessage.success('领取成功')
-        //     window.location.reload()
-        // })
-        // my_button_div.appendChild(get_task_button_no_question)
-
         // 创建一键领取50条任务按钮
         const task_50_button = document.createElement('button')
         task_50_button.textContent = '领取任务(50条)'
@@ -491,20 +456,13 @@ async function getTitles() {
 // 点击修改标题
 async function changeTitle(title) {
     now_title.value = title
+    await navigator.clipboard.writeText(now_title.value)
 
-    await inputTitle()
-}
-
-// 通过python模拟输入标题，js无法改变react的state
-async function inputTitle() {
     const title_el = (await getElementsByXPathAsync('/html/body/div[1]/section/div[2]/section/main/div/div/div[1]/div/div/div[1]/div[1]/div[2]/div[1]/div/div/div[3]/div'))[0]
     title_el.focus()
     title_el.focus()
 
-    // 复制标题到剪贴板
-    await navigator.clipboard.writeText(now_title.value)
-
-    await my_post(import.meta.env.VITE_PTYHON_API_URL + '/paste_title')
+    await my_post(import.meta.env.VITE_PTYHON_API_URL + '/empty_and_paste_content')
 }
 // 监听文本框输入变化   暂时无法实现，因为输入会报错，导致代码无法执行
 // listen_title_change()
@@ -530,59 +488,73 @@ async function inputTitle() {
 //     // 开始观察
 //     observer.observe(editableDiv, config);
 // }
-// ========================================== AI生成文章相关 ===========================================
+// ========================================== 页面跳转 和 进入页面 ===========================================
+// 详情页跳转到小红书
+async function goto_xhs(keyword) {
+    GM_setValue('xhs', 'true')
+    await navigator.clipboard.writeText(now_task_keyword.value)
+    const urlPart = 'www.xiaohongshu.com'
+    chrome.runtime.sendMessage(import.meta.env.VITE_CHROME_PLUGIN_ID, { action: 'activateTab', urlPart: urlPart }, response => {
+        GM_setValue('backTabId', response.tabId)
+        GM_setValue('backWindowId', response.windowId)
+    })
+}
 // 跳转文心一言
 async function goto_yiyan() {
-    // GM_openInTab(yiyan_url, { active: false, insert: true, setParent: true })
+    GM_setValue('yiyan', 'true')
     await navigator.clipboard.writeText(now_task_keyword.value)
     const urlPart = 'yiyan.baidu.com'
-    chrome.runtime.sendMessage('lgmogdnlnnnlkcmdbofiniokkfblflff', { action: 'activateTab', urlPart: urlPart }, response => {
-        GM_setValue('yiyan', 'true')
+    chrome.runtime.sendMessage(import.meta.env.VITE_CHROME_PLUGIN_ID, { action: 'activateTab', urlPart: urlPart }, response => {
+        GM_setValue('backTabId', response.tabId)
+        GM_setValue('backWindowId', response.windowId)
     })
 }
 // 跳转豆包
 async function goto_doubao() {
+    GM_setValue('doubao', 'true')
     await navigator.clipboard.writeText(now_task_keyword.value)
     const urlPart = 'www.doubao.com'
-    chrome.runtime.sendMessage('lgmogdnlnnnlkcmdbofiniokkfblflff', { action: 'activateTab', urlPart: urlPart }, response => {
-        GM_setValue('doubao', 'true')
+    chrome.runtime.sendMessage(import.meta.env.VITE_CHROME_PLUGIN_ID, { action: 'activateTab', urlPart: urlPart }, response => {
+        GM_setValue('backTabId', response.tabId)
+        GM_setValue('backWindowId', response.windowId)
     })
 }
 // 跳转通义千问
 async function goto_qianwen() {
-    // GM_openInTab(yiyan_url, { active: false, insert: true, setParent: true })
+    GM_setValue('tongyi', 'true')
     await navigator.clipboard.writeText(now_task_keyword.value)
     const urlPart = 'tongyi.aliyun.com'
-    chrome.runtime.sendMessage('lgmogdnlnnnlkcmdbofiniokkfblflff', { action: 'activateTab', urlPart: urlPart }, response => {
-        GM_setValue('tongyi', 'true')
+    chrome.runtime.sendMessage(import.meta.env.VITE_CHROME_PLUGIN_ID, { action: 'activateTab', urlPart: urlPart }, response => {
+        GM_setValue('backTabId', response.tabId)
+        GM_setValue('backWindowId', response.windowId)
     })
+}
+// 从豆包跳转到上一个标签tab - 复制内容
+async function go_back_tab_from_doubao() {
+    GM_setValue('ai_content', 'true')
+    if (!GM_getValue('backTabId') || !GM_getValue('backWindowId')) {
+        ElMessage.error('没有找到上一个标签页')
+        return
+    }
+    chrome.runtime.sendMessage(import.meta.env.VITE_CHROME_PLUGIN_ID, { action: 'backTab', tabId: GM_getValue('backTabId'), windowId: GM_getValue('backWindowId') }, response => {})
 }
 // 监听从主页面跳转过来，自动执行输入操作
 listen_auto_input()
 async function listen_auto_input() {
-    // 默认设置为false，避免设置为true的时候，页面本身没打开，导致一直为true
-    GM_setValue('xhs', 'false')
-    GM_setValue('doubao', 'false')
-    GM_setValue('yiyan', 'false')
-    GM_setValue('tongyi', 'false')
-
-    // 监听来自主页的标题 - 小红书
-    if (location.href.includes('www.xiaohongshu.com')) {
-        GM_addValueChangeListener('xhs', async (name, old_value, new_value, remote) => {
-            if (new_value == 'true') {
+    document.addEventListener('visibilitychange', async () => {
+        if (document.visibilityState === 'visible') {
+            // 监听来自主页的标题 - 小红书
+            if (GM_getValue('xhs') == 'true') {
+                GM_setValue('xhs', 'false')
                 const editableDiv = (await getElementsByXPathAsync("//input[@id='search-input']"))[0]
                 // 两次聚焦，避免第一次聚焦存在延迟，导致全选选中了整个网页
                 editableDiv.focus()
                 editableDiv.focus()
                 await my_post(import.meta.env.VITE_PTYHON_API_URL + '/xhs_search')
-                GM_setValue('xhs', 'false')
             }
-        })
-    }
-    // 监听来自主页的标题 - 豆包
-    if (location.href.includes('www.doubao.com')) {
-        GM_addValueChangeListener('doubao', async (name, old_value, new_value, remote) => {
-            if (new_value == 'true') {
+            // 监听来自主页的标题 - 豆包
+            if (GM_getValue('doubao') == 'true') {
+                GM_setValue('doubao', 'false')
                 const editableDiv = (
                     await getElementsByXPathAsync("//*[@id='root']/div[1]/div/div[2]/div[1]/div[1]/div/div/div[3]/div/div/div/div[3]/div[1]/div/div[1]/div/textarea")
                 )[0]
@@ -590,35 +562,36 @@ async function listen_auto_input() {
                 editableDiv.focus()
                 editableDiv.focus()
                 await my_post(import.meta.env.VITE_PTYHON_API_URL + '/input_ai')
-                GM_setValue('doubao', 'false')
             }
-        })
-    }
-    // 监听来自主页的标题 - 文心一言
-    if (location.href.includes('yiyan.baidu.com')) {
-        GM_addValueChangeListener('yiyan', async (name, old_value, new_value, remote) => {
-            if (new_value == 'true') {
+            // 监听来自主页的标题 - 文心一言
+            if (GM_getValue('yiyan') == 'true') {
+                GM_setValue('yiyan', 'false')
                 const editableDiv = (await getElementsByXPathAsync("//*[@id='eb_model_footer']/div[4]/div[3]/div/div/div/div[3]/div[1]/div/div"))[0]
                 // 两次聚焦，避免第一次聚焦存在延迟，导致全选选中了整个网页
                 editableDiv.focus()
                 editableDiv.focus()
                 await my_post(import.meta.env.VITE_PTYHON_API_URL + '/input_ai')
-                GM_setValue('yiyan', 'false')
             }
-        })
-    }
-    // 监听来自主页的标题 - 通义千问    存在偶发无法注入脚本问题，后期再解决，暂时没有使用千问进行生成
-    if (location.href.includes('tongyi.aliyun.com')) {
-        GM_addValueChangeListener('tongyi', async (name, old_value, new_value, remote) => {
-            if (new_value == 'true') {
+            // 监听来自主页的标题 - 通义千问    存在偶发无法注入脚本问题，后期再解决，暂时没有使用千问进行生成
+            if (GM_getValue('tongyi') == 'true') {
+                GM_setValue('tongyi', 'false')
                 const editableDiv = (await getElementsByXPathAsync("//*[@id='tongyiPageLayout']/div[3]/div/div[2]/div[1]/div[3]/div[2]/div/div[2]/div/textarea"))[0]
                 editableDiv.focus()
                 editableDiv.focus()
                 await my_post(import.meta.env.VITE_PTYHON_API_URL + '/input_ai')
-                GM_setValue('tongyi', 'false')
             }
-        })
-    }
+            // 监听来自AI页面的内容
+            if (GM_getValue('ai_content') == 'true') {
+                GM_setValue('ai_content', 'false')
+                const editableDiv = (
+                    await getElementsByXPathAsync('/html/body/div[1]/section/div[2]/section/main/div/div/div[1]/div/div/div[1]/div[1]/div[3]/div[1]/div/div[3]/div')
+                )[0]
+                editableDiv.focus()
+                editableDiv.focus()
+                await my_post(import.meta.env.VITE_PTYHON_API_URL + '/empty_and_paste_content')
+            }
+        }
+    })
 }
 
 // ========================================== 详情页相关处理 ===========================================
@@ -662,14 +635,7 @@ async function abandon_task() {
 }
 
 // ========================================== 小红书相关 ===========================================
-// 详情页跳转到小红书
-async function goto_xhs(keyword) {
-    await navigator.clipboard.writeText(now_task_keyword.value)
-    const urlPart = 'www.xiaohongshu.com'
-    chrome.runtime.sendMessage(import.meta.env.VITE_CHROME_PLUGIN_ID, { action: 'activateTab', urlPart: urlPart }, response => {
-        GM_setValue('xhs', 'true')
-    })
-}
+
 // 监听页面变化，页面滚动后需要重新加载
 function setupMutationObserver() {
     const targetNode = document.body // 监听整个body的变化
@@ -698,7 +664,7 @@ function changeXhsListStyle() {
             id = item.children[0].children[0].href.split('/')
             id = id[id.length - 1]
         } catch (error) {
-            // console.error('Error extracting ID:', error)
+            console.error('Error extracting ID:', error)
         }
 
         const imageNum = idToImageNumMap.get(id) // 通过ID快速查找image_num
@@ -721,7 +687,7 @@ async function detail_init_todos() {
     await sleep(1000)
 
     // 2.跳转小红书
-    goto_xhs()
+    // goto_xhs()
 
     // 3.修改封面
     change_cover()
@@ -735,6 +701,11 @@ async function copy_doubao() {
         const result = await my_post(import.meta.env.VITE_PTYHON_API_URL + '/change_markdown')
         ElMessage.success('复制完成')
     }
+}
+// 复制豆包文案并返回上一次的页面
+async function copy_doubao_and_back() {
+    await copy_doubao()
+    await go_back_tab_from_doubao()
 }
 
 onMounted(() => {
@@ -782,7 +753,7 @@ onMounted(() => {
         </template>
         <template v-else-if="now_page === 'doubao'">
             <el-button type="primary" @click="copy_doubao()">复制最后一条文案</el-button>
-            <el-button type="success" @click="copy_doubao()">复制文案并跳转</el-button>
+            <el-button type="success" @click="copy_doubao_and_back()">复制文案并跳转</el-button>
         </template>
     </div>
     <!-- <el-dialog v-model="dialogVisible" title="" width="100%" :destroy-on-close="true">

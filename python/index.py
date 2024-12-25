@@ -5,9 +5,13 @@ import send2trash
 from copy_markdown import change_markdown
 from cover import goto_download_cover
 from flask import Flask, jsonify, request, send_from_directory
-from my_keyboard import input_ai, paste_title, search_xhs
+from my_keyboard import empty_and_paste_content, input_ai, search_xhs
+from my_tools import clear_download_directory
 
 app = Flask(__name__, static_folder="dist", static_url_path="")
+
+# 清空封面下载目录
+clear_download_directory()
 
 
 # 全局设置 CORS 头部
@@ -70,10 +74,10 @@ def serve():
     return send_from_directory(app.static_folder, "index.html")
 
 
-# 切换标题
-@app.route("/paste_title", methods=["POST"])
-def change_title():
-    paste_title()
+# 清空并粘贴内容
+@app.route("/empty_and_paste_content", methods=["POST"])
+def change_content():
+    empty_and_paste_content()
     return jsonify({"status": "true"}), 200
 
 

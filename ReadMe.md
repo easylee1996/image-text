@@ -13,3 +13,7 @@ Mac:
 ```shell
 gunicorn --workers 2 --threads 2 --bind 0.0.0.0:6174 index:app
 ```
+
+## 更新浏览器插件
+
+谷歌插件需要手动更新
