@@ -48,7 +48,7 @@ def clean_and_adjust_markdown(text):
         text = re.sub(pattern, r"\n", text, flags=re.MULTILINE)
         matched = True
 
-    return text
+    return text.strip()
 
 
 # 更改剪贴板中的 Markdown 内容
