@@ -21,6 +21,8 @@ markdown = "^3.7"
 gunicorn = "^23.0.0"
 waitress = "^3.0.2"
 setuptools = "^75.6.0"
+fastapi = "^0.115.6"
+uvicorn = "^0.34.0"
 
 
 [build-system]

@@ -2,16 +2,10 @@
 
 ### 使用 HTTP 请求交互
 
-windows:
+使用的是 fastapi 里面的 uvicorn，所以不需要输入
 
 ```shell
-waitress-serve --port=6174 --threads=3 index:app
-```
-
-Mac:
-
-```shell
-gunicorn --workers 2 --threads 2 --bind 0.0.0.0:6174 index:app
+python index.py
 ```
 
 ## 更新浏览器插件
