@@ -5,8 +5,6 @@ import { getElementsByXPathAsync, sleep } from './utils/utils'
 import Cookies from 'js-cookie'
 import { throttle, debounce } from 'lodash'
 
-console.log(111111111111111, import.meta.env)
-
 // 变量
 const now_task_keyword = ref('') // 当前任务关键词
 let token = Cookies.get('enterprise_yyb_token')
@@ -18,6 +16,7 @@ let change_cover_image_obj = {}
 let save_is_change_cover = false
 let change_content = ''
 let save_is_change_content = false
+let now_page = ''
 // 小红书
 const idToImageNumMap = new Map()
 const imgMinNum = ref(0)
@@ -26,6 +25,22 @@ const task_titles = ref([]) // 当前任务AI生成标题列表
 const now_title = ref('')
 const task_titles_loading = ref(false) // 当前任务AI生成标题列表加载状态
 // ========================================== 公用方法 ===========================================
+// 判断当前页面
+getNowPage()
+function getNowPage() {
+    const url = window.location.href
+    if (url.includes('www.xiaohongshu.com/')) {
+        now_page = 'xiaohongshu'
+    } else if (url.includes('www.doubao.com/')) {
+        now_page = 'doubao'
+    } else if (url.includes('yiyan.baidu.com')) {
+        now_page = 'yiyan'
+    } else if (url.includes('tongyi.aliyun.com')) {
+        now_page = 'tongyi'
+    } else if (url.includes('ai.openvam.com')) {
+        now_page = 'task'
+    }
+}
 // 自定义post
 function my_post(url, data, headers = null) {
     return new Promise((resolve, reject) => {
@@ -248,7 +263,6 @@ async function change_cover() {
     const result1 = await my_post(`https://yyb-api.yilancloud.com/api/ai/v1/draw/image/upload`, { file_name: result0.filename, content_type: 'image/webp' })
 
     // 2.上传到阿里云 oss
-    // const filePath = 'file:///Users/miao/Downloads/cover.webp';
     const filePath = import.meta.env.VITE_PTYHON_API_URL + '/api/cover/' + result0.filename
     const imageBlob = await fetchImageAsBlob(filePath)
     await put_image_to_oss(result1, imageBlob)
@@ -697,17 +711,6 @@ function changeXhsListStyle() {
     })
 }
 // ========================================== 其它功能处理 ===========================================
-// 是否显示menu菜单
-const show_menu = ref(true)
-show_menu_if()
-function show_menu_if() {
-    if (location.href.includes('ai.openvam.com')) {
-        show_menu.value = true
-    } else {
-        show_menu.value = false
-    }
-}
-
 // 进入详情页的默认操作
 async function detail_init_todos() {
     // 1.设置标题
@@ -724,49 +727,13 @@ async function detail_init_todos() {
     change_cover()
 }
 
-// 豆包添加复制按钮
-add_doubao_copy_button()
-async function add_doubao_copy_button() {
-    if (location.href.includes('www.doubao.com')) {
-        // 创建一个 MutationObserver 实例
-        const observer = new MutationObserver(mutationsList => {
-            mutationsList.forEach(mutation => {
-                if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
-                    mutation.addedNodes.forEach(node => {
-                        if (node.nodeType === Node.ELEMENT_NODE) {
-                            const copyButton = node.querySelector("button[data-testid='message_action_copy']")
-                            if (copyButton && !copyButton.hasAttribute('copy-button-added')) {
-                                // 创建并插入新的按钮
-                                const button = document.createElement('button')
-                                button.innerText = '复制文案'
-                                button.className = 'copy-markdown-button'
-                                button.addEventListener('click', async () => {
-                                    copyButton.click()
-                                    const result = await my_post(import.meta.env.VITE_PTYHON_API_URL + '/change_markdown')
-                                    ElMessage.success('复制完成')
-                                })
-                                copyButton.parentNode.appendChild(button)
-                                copyButton.parentNode.style.height = '20px'
-                                copyButton.setAttribute('copy-button-added', 'true')
-                            }
-                        }
-                    })
-                }
-            })
-        })
-
-        // 配置观察选项
-        const config = { childList: true, subtree: true }
-
-        // 选择目标节点（通常是包含动态内容的父容器）
-        const targetNode = (await getElementsByXPathAsync("//div[contains(@class,'container')]/div[contains(@class,'inter-')]//div[contains(@class,'inter-')]"))[0]
-
-        // 开始观察
-        if (targetNode) {
-            observer.observe(targetNode, config)
-        } else {
-            console.error('Target node not found')
-        }
+// 复制豆包文案
+async function copy_doubao() {
+    const copyButtons = document.querySelectorAll("button[data-testid='message_action_copy']")
+    if (copyButtons.length > 0) {
+        copyButtons[copyButtons.length - 1].click()
+        const result = await my_post(import.meta.env.VITE_PTYHON_API_URL + '/change_markdown')
+        ElMessage.success('复制完成')
     }
 }
 
@@ -793,24 +760,30 @@ onMounted(() => {
 </script>
 
 <template>
-    <div class="image-text-container" v-if="show_menu">
-        <el-button type="success" @click="getTitles()" v-loading="task_titles_loading" :disabled="task_titles_loading">获取延伸标题</el-button>
-        <div class="title-list">
-            <div class="title-one" v-for="item in task_titles" :key="item" @click="changeTitle(item)">
-                {{ item }}
+    <div class="image-text-container">
+        <template v-if="now_page === 'task'">
+            <el-button type="success" @click="getTitles()" v-loading="task_titles_loading" :disabled="task_titles_loading">获取延伸标题</el-button>
+            <div class="title-list">
+                <div class="title-one" v-for="item in task_titles" :key="item" @click="changeTitle(item)">
+                    {{ item }}
+                </div>
             </div>
-        </div>
-        <div class="title-input">
-            <el-input v-model="now_title" placeholder="请输入标题"></el-input>
-            <el-button size="small" @click="changeTitle(now_title)">修改标题</el-button>
-        </div>
+            <div class="title-input">
+                <el-input v-model="now_title" placeholder="请输入标题"></el-input>
+                <el-button size="small" @click="changeTitle(now_title)">修改标题</el-button>
+            </div>
 
-        <el-button type="danger" @click="change_cover()" v-loading="cover_loading" :disabled="cover_loading">修改封面</el-button>
-        <el-button type="warning" @click="goto_xhs()">跳转到小红书</el-button>
-        <el-button type="primary" @click="goto_doubao()">跳转豆包</el-button>
-        <!-- <el-button type="primary" @click="goto_qianwen()">跳转通义千问</el-button> -->
-        <el-button type="primary" @click="goto_yiyan()">跳转文心一言</el-button>
-        <el-button type="danger" @click="abandon_task()">放弃任务</el-button>
+            <el-button type="danger" @click="change_cover()" v-loading="cover_loading" :disabled="cover_loading">修改封面</el-button>
+            <el-button type="warning" @click="goto_xhs()">跳转到小红书</el-button>
+            <el-button type="primary" @click="goto_doubao()">跳转豆包</el-button>
+            <!-- <el-button type="primary" @click="goto_qianwen()">跳转通义千问</el-button> -->
+            <el-button type="primary" @click="goto_yiyan()">跳转文心一言</el-button>
+            <el-button type="danger" @click="abandon_task()">放弃任务</el-button>
+        </template>
+        <template v-else-if="now_page === 'doubao'">
+            <el-button type="primary" @click="copy_doubao()">复制最后一条文案</el-button>
+            <el-button type="success" @click="copy_doubao()">复制文案并跳转</el-button>
+        </template>
     </div>
     <!-- <el-dialog v-model="dialogVisible" title="" width="100%" :destroy-on-close="true">
         <div class="dialog-content"></div>
@@ -839,7 +812,7 @@ onMounted(() => {
 
     .el-button {
         width: 98%;
-        margin-bottom: 3px;
+        margin-bottom: 8px;
     }
 
     .el-button + .el-button {

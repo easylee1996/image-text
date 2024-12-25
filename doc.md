@@ -1,85 +1,39 @@
-在多个 Vue 项目共用根目录下的`.env`文件这种情况下，默认是无法直接读取到的。
+除了 pnpm，以下是一些常见的包管理器：
 
-### 原因
+前端领域
+npm
+简介：npm（Node Package Manager）是 Node.js 默认的包管理器，随着 Node.js 的广泛使用而流行。它是 JavaScript 生态系统中最早也是最常用的包管理工具之一，极大地推动了 JavaScript 开源社区的发展。
+特点：拥有庞大的软件包仓库 npm registry，几乎涵盖了所有类型的 JavaScript 项目所需的库和工具。它的命令行界面简单易用，支持安装、更新、卸载包等基本操作。不过，npm 在安装依赖时可能会出现嵌套过深、依赖重复等问题，导致安装速度较慢且占用较多磁盘空间 。
+使用场景：适用于各种规模的 Node.js 项目，无论是小型的个人项目还是大型的企业级应用。在前端开发中，常用于管理项目的依赖，如安装 React、Vue 等前端框架及其相关插件。
+yarn
+简介：由 Facebook 开发，旨在解决 npm 存在的一些问题。yarn 具有更快的安装速度、更可靠的依赖管理和更简洁的命令行界面，受到了很多开发者的欢迎。
+特点：采用了并行安装和离线缓存的机制，大大提高了安装速度。它通过锁文件（yarn.lock）精确控制依赖的版本，确保不同环境下安装的依赖完全一致，避免了因依赖版本不一致导致的问题。此外，yarn 还支持工作区（workspaces）功能，方便管理多包项目。
+使用场景：与 npm 类似，广泛应用于 Node.js 项目，尤其在对安装速度和依赖管理要求较高的项目中表现出色。在大型的前端项目中，yarn 的工作区功能可以有效地管理多个子项目之间的依赖关系。
 
-每个 Vue 项目通常会独立运行，其构建工具（如`@vue/cli`）默认会在每个项目自己的根目录下查找`.env`文件来加载环境变量。
+后端领域
+pip
+简介：pip 是 Python 的标准包管理器，用于安装、升级和管理 Python 包。它可以从 Python Package Index（PyPI）上下载并安装各种开源的 Python 库和工具。
+特点：简单易用，通过几行命令就能完成包的安装和管理。pip 支持虚拟环境（virtualenv），可以为每个项目创建独立的 Python 环境，避免不同项目之间的依赖冲突。此外，pip 还支持从本地文件、版本控制系统（如 Git）安装包。
+使用场景：在 Python 开发的各个领域都有广泛应用，无论是 Web 开发（如 Django、Flask 项目）、数据科学（如使用 NumPy、pandas 等库）还是机器学习项目，都离不开 pip 来管理依赖。
+Maven
+简介：Maven 是一个基于 Java 的项目管理和构建工具，主要用于 Java 项目的依赖管理、项目构建和部署。它采用了约定优于配置（Convention over Configuration）的原则，大大简化了项目的配置过程。
+特点：通过一个简单的 pom.xml 文件来管理项目的依赖、插件和构建配置。Maven 有一个中央仓库，存储了大量的 Java 库和插件，开发者可以方便地在项目中引入所需的依赖。它还支持生命周期管理，如编译、测试、打包、部署等，方便项目的自动化构建和部署。
+使用场景：在 Java 企业级开发中广泛应用，尤其是在大型的多模块项目中，Maven 可以统一管理项目的依赖和构建过程，提高项目的可维护性和可扩展性。
+Gradle
+简介：Gradle 是一个基于 Groovy 或 Kotlin 语言的构建工具，它结合了 Ant 的灵活性和 Maven 的约定优于配置的优点，为 Java、Groovy、Kotlin 等项目提供了强大的依赖管理和构建功能。
+特点：支持多种语言和平台，具有高度的灵活性和可定制性。Gradle 采用了增量构建的机制，只重新构建发生变化的部分，大大提高了构建速度。它还支持远程仓库和本地仓库，方便管理项目的依赖。
+使用场景：适用于各种规模的 Java、Groovy、Kotlin 项目，尤其在对构建速度和灵活性要求较高的项目中表现出色。在 Android 开发中，Gradle 是官方推荐的构建工具，用于管理项目的依赖和构建过程。
 
-### 解决方案
-
-1. **配置文件共享机制**：
-    - 可以手动创建一个脚本，在启动每个 Vue 项目之前，将根目录的`.env`文件内容读取并设置为系统环境变量。例如，在 Linux 或 macOS 系统中，可以使用 Shell 脚本：
-
-```bash
-#!/bin/bash
-# 读取根目录.env文件内容
-while IFS='=' read -r key value; do
-    export "$key=$value"
-done < /path/to/root/.env
-# 启动Vue项目
-cd /path/to/vue/project
-npm run serve
-```
-
-    - 在Windows系统中，可以使用批处理脚本：
-
-```batch
-@echo off
-for /f "tokens=1,2 delims==" %%a in ('type C:\path\to\root\.env') do (
-    set "%%a=%%b"
-)
-cd C:\path\to\vue\project
-npm run serve
-```
-
-2. **自定义加载逻辑**：
-    - 在每个 Vue 项目中，可以自定义一个加载环境变量的函数。例如，在项目入口文件（通常是`main.js`）中：
-
-```javascript
-import { ref } from 'vue'
-// 自定义读取.env文件函数
-function loadEnvVariables() {
-    const envFile = require('fs').readFileSync('/path/to/root/.env', 'utf8')
-    const lines = envFile.split('\n')
-    const env = {}
-    lines.forEach(line => {
-        const parts = line.split('=')
-        if (parts.length === 2) {
-            env[parts[0].trim()] = parts[1].trim()
-        }
-    })
-    return env
-}
-const envVariables = loadEnvVariables()
-// 将环境变量挂载到Vue实例或全局对象上
-const app = createApp({})
-app.config.globalProperties.$env = envVariables
-app.mount('#app')
-```
-
-3. **使用工具统一管理**：
-    - 可以使用一些工具来统一管理多个项目的环境变量，如`dotenv-expand`。先安装`dotenv-expand`：
-
-```bash
-npm install dotenv-expand
-```
-
-    - 然后在每个Vue项目的`package.json`的`scripts`中修改启动命令：
-
-```json
-{
-    "scripts": {
-        "serve": "dotenv-expand node --require dotenv/config node_modules/@vue/cli-service/bin/vue-cli-service.js serve"
-    }
-}
-```
-
-    - 并在每个Vue项目的根目录下创建一个简单的`.env`文件，用于引用根目录的`.env`文件，例如：
-
-```bash
-# 项目根目录下的.env
-MY_VARIABLE=value
-# 单个Vue项目根目录下的.env
-DOTENV_CONFIG_PATH=/path/to/root/.env
-```
-
-通过以上方法，多个 Vue 项目可以间接地读取到根目录下`.env`文件中的配置。
+系统级包管理器
+apt
+简介：apt（Advanced Package Tool）是 Debian 及其衍生系统（如 Ubuntu）的包管理器。它用于在系统中安装、升级和卸载软件包，以及处理软件包之间的依赖关系。
+特点：提供了一个简单而高效的命令行界面，用户可以通过几条命令完成软件的安装和管理。apt 使用软件源列表来指定软件包的下载地址，这些软件源可以是官方的，也可以是第三方的。它还支持自动处理依赖关系，在安装软件包时会自动安装所需的依赖。
+使用场景：在基于 Debian 的 Linux 系统中，apt 是安装和管理软件的主要工具。无论是安装开发工具（如 GCC、Python 等）、服务器软件（如 Apache、Nginx 等）还是桌面应用程序（如 Firefox、LibreOffice 等），都可以使用 apt 来完成。
+yum
+简介：yum（Yellowdog Updater, Modified）是 Red Hat、CentOS 等基于 Red Hat Linux 系统的包管理器。它的功能与 apt 类似，用于在系统中安装、升级和卸载软件包，并处理依赖关系。
+特点：提供了一个简单的命令行界面，用户可以方便地管理软件包。yum 使用仓库配置文件来指定软件包的来源，这些仓库可以是官方的，也可以是自定义的。它也能够自动处理软件包的依赖关系，确保软件的正确安装。
+使用场景：在基于 Red Hat 的 Linux 系统中广泛应用，常用于服务器环境的软件安装和管理。例如，在 CentOS 服务器上安装 LAMP（Linux、Apache、MySQL、PHP）环境时，yum 是常用的工具之一。
+brew
+简介：brew（Homebrew）是 Mac OS X 系统上的包管理器，它允许用户在 Mac 上轻松安装、管理和卸载各种软件包，包括开发工具、服务器软件、桌面应用等。
+特点：安装简单，通过一条命令就能安装大多数常用软件。brew 的软件仓库包含了大量的开源软件，并且会定期更新。它采用了一种简单的目录结构，将软件安装在独立的目录中，不会影响系统的原有文件，方便软件的管理和卸载。
+使用场景：在 Mac OS X 系统的开发和日常使用中非常实用。开发者可以使用 brew 快速安装各种开发环境和工具，如 Git、Node.js、Python 等；普通用户也可以使用它安装一些常用的桌面应用，如 Chrome、VLC 等。
