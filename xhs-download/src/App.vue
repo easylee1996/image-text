@@ -11,7 +11,7 @@ const all_selected_label = ref('全选')
 
 // ============================================================== 无水印下载功能实现 ================================================================================
 let currentUrl = window.location.href
-// 获取最新的当前地址
+// 获取最新的当前地址，小红书点击帖子时，url会变化，需要从url中获取ID等信息
 const get_newest_url = () => {
     let observer
 
@@ -58,17 +58,14 @@ const abnormal = () => {
     alert('下载无水印作品文件失败！')
 }
 
-// 下载预处理2 - 获取文件名
-const download = async (urls, type_) => {
+// 下载预处理2 - 获取文件名,然后开始下载
+const download = async urls => {
     const name = extractName()
     console.info(`基础文件名称 ${name}`)
-    if (type_ === 'video') {
-        await downloadVideo(urls[0], name)
-    } else {
-        // 获取无水印url
-        urls = await generateImageUrl(urls)
-        await downloadImage(urls, name)
-    }
+
+    // 获取无水印url
+    urls = await generateImageUrl(urls)
+    await downloadImage(urls, name)
 }
 
 // 下载预处理1 - 获取url
@@ -82,15 +79,10 @@ const exploreDeal = async note => {
             selectedImages.value = links
             all_selected.value = true
             handleCheckAllChange(true)
-            return
         } else {
+            // 视频浏览器标签页打开查看，这是最快的方式
             links = generateVideoUrl(note)
-        }
-        if (links.length > 0) {
-            console.info('无水印文件下载链接', links)
-            await download(links, note.type)
-        } else {
-            abnormal()
+            window.open(links[0])
         }
     } catch (error) {
         console.error('Error in deal function:', error)
@@ -98,7 +90,7 @@ const exploreDeal = async note => {
     }
 }
 
-// 从url中提取作品信息
+// 从url中提取作品信息，包含了图片列表
 const extractNoteInfo = () => {
     const regex = /\/explore\/([^?]+)/
     const match = currentUrl.match(regex)
@@ -110,7 +102,7 @@ const extractNoteInfo = () => {
     }
 }
 
-// 解析下载链接
+// 解析当前帖子的url，从中获取图片列表url等信息，解析完成开始预处理
 const extractDownloadLinks = async () => {
     if (currentUrl.includes('https://www.xiaohongshu.com/explore/')) {
         let note = extractNoteInfo()
@@ -167,14 +159,7 @@ const extractName = () => {
     return name === '' ? id : name
 }
 
-// 下载无水印视频
-const downloadVideo = async (url, name) => {
-    if (!(await downloadFile(url, `${name}.mp4`))) {
-        abnormal()
-    }
-}
-
-// 下载无水印图片
+// 下载所有选中的无水印图片
 const downloadImage = async (urls, name) => {
     let result = []
     for (const [index, url] of urls.entries()) {
@@ -226,7 +211,7 @@ function handleCheckedChange(value) {
                     @change="handleCheckAllChange"
                     style="margin-right: 10px"
                 />
-                <el-button type="primary" @click="download(selectedImages, 'normal')">下载资源</el-button>
+                <el-button type="primary" @click="download(selectedImages)">下载资源</el-button>
             </div>
         </template>
     </el-drawer>
@@ -323,8 +308,8 @@ function handleCheckedChange(value) {
 
 .img-list .item img {
     width: 100%;
-    height: 100%;
-    object-fit: cover;
+    height: auto;
+    object-fit: none;
 }
 
 .btns {
