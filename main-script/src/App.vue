@@ -662,7 +662,7 @@ async function copy_doubao_and_back() {
 
 // 删除下载目录
 async function delete_download_dir() {
-    await my_post(import.meta.env.VITE_API_URL + '/delete_download')
+    await my_post(import.meta.env.VITE_PTYHON_API_URL + '/delete_download')
 }
 
 onMounted(() => {
