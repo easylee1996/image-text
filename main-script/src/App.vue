@@ -56,10 +56,10 @@ function my_post(url, data, headers = null) {
             headers: headers
                 ? headers
                 : {
-                      'Content-Type': 'application/json',
-                      Token: token,
-                      Teamid: Teamid,
-                  },
+                    'Content-Type': 'application/json',
+                    Token: token,
+                    Teamid: Teamid,
+                },
             data: JSON.stringify(data),
             onload: function (response) {
                 if (response.status === 200) {
@@ -487,7 +487,7 @@ async function go_back_tab_from_doubao() {
         ElMessage.error('没有找到上一个标签页')
         return
     }
-    chrome.runtime.sendMessage(import.meta.env.VITE_CHROME_PLUGIN_ID, { action: 'backTab', tabId: GM_getValue('backTabId'), windowId: GM_getValue('backWindowId') }, response => {})
+    chrome.runtime.sendMessage(import.meta.env.VITE_CHROME_PLUGIN_ID, { action: 'backTab', tabId: GM_getValue('backTabId'), windowId: GM_getValue('backWindowId') }, response => { })
 }
 // 监听从主页面跳转过来，自动执行输入操作
 listen_auto_input()
@@ -639,7 +639,7 @@ async function detail_init_todos() {
     await sleep(1000)
 
     // 2.跳转小红书
-    // goto_xhs()
+    goto_xhs()
 
     // 3.修改封面
     change_cover()
@@ -691,7 +691,8 @@ onMounted(() => {
     <div class="image-text-container" v-if="now_page === 'task' || now_page === 'doubao'">
         <template v-if="now_page === 'task'">
             <!-- 获取衍生AI标题 -->
-            <el-button type="success" @click="getTitles()" v-loading="task_titles_loading" :disabled="task_titles_loading">获取延伸标题</el-button>
+            <el-button type="success" @click="getTitles()" v-loading="task_titles_loading"
+                :disabled="task_titles_loading">获取延伸标题</el-button>
             <div class="title-list">
                 <div class="title-one" v-for="item in task_titles" :key="item" @click="changeTitle(item)">
                     {{ item }}
@@ -701,7 +702,8 @@ onMounted(() => {
                 <el-input v-model="now_title" placeholder="请输入标题"></el-input>
             </div>
             <el-button size="success" @click="changeTitle(now_title)">修改标题</el-button>
-            <el-button type="danger" @click="change_cover()" v-loading="cover_loading" :disabled="cover_loading">修改封面</el-button>
+            <el-button type="danger" @click="change_cover()" v-loading="cover_loading"
+                :disabled="cover_loading">修改封面</el-button>
             <el-button type="primary" @click="goto_xhs()">跳转到小红书</el-button>
             <el-button type="primary" @click="goto_doubao()">跳转豆包</el-button>
             <!-- <el-button type="primary" @click="goto_qianwen()">跳转通义千问</el-button> -->
@@ -741,7 +743,7 @@ onMounted(() => {
         margin-bottom: 8px;
     }
 
-    .el-button + .el-button {
+    .el-button+.el-button {
         margin-left: 0px;
     }
 
@@ -868,6 +870,7 @@ onMounted(() => {
     background-color: crimson;
     color: #fff;
 }
+
 .copy-markdown-button {
     width: 120px;
     height: 30px;

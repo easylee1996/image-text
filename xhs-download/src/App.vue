@@ -8,7 +8,8 @@ const images = ref([])
 const all_selected = ref(false)
 const isIndeterminate = ref(false)
 const all_selected_label = ref('全选')
-const showDownloadExplore = ref(true)
+const autoShowDownloadExplore = ref(true)
+
 
 // ============================================================== 无水印下载功能实现 ================================================================================
 let currentUrl = window.location.href
@@ -19,17 +20,37 @@ const get_newest_url = () => {
     observer = new MutationObserver(function () {
         if (currentUrl !== window.location.href) {
             currentUrl = window.location.href
-
-            // 点击小红书，直接打开预览下载
-            if (currentUrl.includes('explore') && showDownloadExplore.value) {
-                extractDownloadLinks()
-            }
         }
     })
     const config = { childList: true, subtree: true }
     observer.observe(document.body, config)
 }
 get_newest_url()
+
+// 劫持请求
+interceptRequest()
+function interceptRequest() {
+    // 返回劫持
+    const originOpen = XMLHttpRequest.prototype.open
+    XMLHttpRequest.prototype.open = function (_, url) {
+        // 请求的url保留一下，以供提交劫持时使用
+        this._url = url
+
+        // 等待点击帖子，请求完这个帖子的图片列表后，再执行
+        if (url.includes('/api/sns/web/v1/feed')) {
+            this.addEventListener('readystatechange', function () {
+                if (this.readyState === 4) {
+                    if (autoShowDownloadExplore.value) {
+                        setTimeout(() => {
+                            extractDownloadLinks()
+                        })
+                    }
+                }
+            })
+        }
+        originOpen.apply(this, arguments)
+    }
+}
 
 // 创建无水印视频下载地址
 const generateVideoUrl = note => {
@@ -216,15 +237,8 @@ onMounted(() => {
         </el-checkbox-group>
         <template #footer>
             <div class="xhs-btns">
-                <el-checkbox
-                    v-model="all_selected"
-                    :indeterminate="isIndeterminate"
-                    :label="all_selected_label"
-                    size="default"
-                    border
-                    @change="handleCheckAllChange"
-                    style="margin-right: 10px"
-                />
+                <el-checkbox v-model="all_selected" :indeterminate="isIndeterminate" :label="all_selected_label"
+                    size="default" border @change="handleCheckAllChange" style="margin-right: 10px" />
                 <el-button type="primary" @click="downloadResource(selectedImages)">下载资源</el-button>
                 <el-button type="danger" @click="closeWindow">关闭窗口</el-button>
             </div>
@@ -257,7 +271,7 @@ onMounted(() => {
         margin-bottom: 3px;
     }
 
-    .el-button + .el-button {
+    .el-button+.el-button {
         margin-left: 0px;
     }
 }
@@ -265,7 +279,7 @@ onMounted(() => {
 <style>
 .img-list {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(6, 1fr);
     gap: 10px;
     padding: 10px;
     border-radius: 8px;
@@ -324,11 +338,15 @@ onMounted(() => {
 .img-list .item img {
     width: 100%;
     height: auto;
-    object-fit: none;
+    object-fit: contain;
 }
 
 .xhs-btns {
     display: flex;
     justify-content: center;
+}
+
+.el-drawer__header {
+    margin-bottom: 0px !important;
 }
 </style>
