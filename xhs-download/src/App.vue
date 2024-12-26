@@ -8,6 +8,7 @@ const images = ref([])
 const all_selected = ref(false)
 const isIndeterminate = ref(false)
 const all_selected_label = ref('全选')
+const showDownloadExplore = ref(true)
 
 // ============================================================== 无水印下载功能实现 ================================================================================
 let currentUrl = window.location.href
@@ -18,6 +19,11 @@ const get_newest_url = () => {
     observer = new MutationObserver(function () {
         if (currentUrl !== window.location.href) {
             currentUrl = window.location.href
+
+            // 点击小红书，直接打开预览下载
+            if (currentUrl.includes('explore') && showDownloadExplore.value) {
+                extractDownloadLinks()
+            }
         }
     })
     const config = { childList: true, subtree: true }
@@ -59,7 +65,7 @@ const abnormal = () => {
 }
 
 // 下载预处理2 - 获取文件名,然后开始下载
-const download = async urls => {
+const downloadResource = async urls => {
     const name = extractName()
     console.info(`基础文件名称 ${name}`)
 
@@ -184,6 +190,14 @@ function handleCheckedChange(value) {
 
     all_selected_label.value = selectedImages.value.length > 0 ? '全选(' + selectedImages.value.length + ')' : '全选'
 }
+// 关闭窗口
+function closeWindow() {
+    showDialog.value = false
+    document.querySelector('.close-circle').click()
+}
+onMounted(() => {
+    window.closeWindow = closeWindow
+})
 </script>
 
 <template>
@@ -201,7 +215,7 @@ function handleCheckedChange(value) {
             </div>
         </el-checkbox-group>
         <template #footer>
-            <div class="btns">
+            <div class="xhs-btns">
                 <el-checkbox
                     v-model="all_selected"
                     :indeterminate="isIndeterminate"
@@ -211,7 +225,8 @@ function handleCheckedChange(value) {
                     @change="handleCheckAllChange"
                     style="margin-right: 10px"
                 />
-                <el-button type="primary" @click="download(selectedImages)">下载资源</el-button>
+                <el-button type="primary" @click="downloadResource(selectedImages)">下载资源</el-button>
+                <el-button type="danger" @click="closeWindow">关闭窗口</el-button>
             </div>
         </template>
     </el-drawer>
@@ -312,7 +327,7 @@ function handleCheckedChange(value) {
     object-fit: none;
 }
 
-.btns {
+.xhs-btns {
     display: flex;
     justify-content: center;
 }
