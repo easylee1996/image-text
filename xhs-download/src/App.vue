@@ -2,40 +2,12 @@
 import { unsafeWindow, GM_xmlhttpRequest, GM_getResourceURL, GM_addValueChangeListener, GM_setValue, GM_getValue, GM_openInTab } from '$'
 import { ref, h, nextTick, onMounted } from 'vue'
 
-const drawer = ref(false)
+const showDialog = ref(false)
 const selectedImages = ref([])
 const images = ref([])
 const all_selected = ref(false)
 const isIndeterminate = ref(false)
 const all_selected_label = ref('全选')
-
-// ========================================== 公用方法 ===========================================
-// 自定义post
-function my_post(url, data, headers = null) {
-    return new Promise((resolve, reject) => {
-        GM_xmlhttpRequest({
-            method: 'POST',
-            url: url,
-            headers: headers
-                ? headers
-                : {
-                      'Content-Type': 'application/json',
-                  },
-            data: JSON.stringify(data),
-            onload: function (response) {
-                if (response.status === 200) {
-                    console.log('my_post请求发送成功:', response.responseText)
-                    resolve(JSON.parse(response.responseText))
-                } else {
-                    reject(new Error(`Failed to fetch image: ${response.statusText}`))
-                }
-            },
-            onerror: function (error) {
-                reject(new Error(`Network error: ${error}`))
-            },
-        })
-    })
-}
 
 // ============================================================== 无水印下载功能实现 ================================================================================
 let currentUrl = window.location.href
@@ -64,13 +36,12 @@ const generateVideoUrl = note => {
 }
 
 // 创建无水印图片下载地址
-const generateImageUrl = note => {
-    let images = note.imageList
+const generateImageUrl = images => {
     const regex = /http:\/\/sns-webpic-qc\.xhscdn.com\/\d+\/[0-9a-z]+\/(\S+)!/
     let urls = []
     try {
         images.forEach(item => {
-            let match = item.urlDefault.match(regex)
+            let match = item.match(regex)
             if (match && match[1]) {
                 urls.push(`https://ci.xiaohongshu.com/${match[1]}?imageView2/format/webp`)
             }
@@ -94,6 +65,8 @@ const download = async (urls, type_) => {
     if (type_ === 'video') {
         await downloadVideo(urls[0], name)
     } else {
+        // 获取无水印url
+        urls = await generateImageUrl(urls)
         await downloadImage(urls, name)
     }
 }
@@ -103,9 +76,9 @@ const exploreDeal = async note => {
     try {
         let links
         if (note.type === 'normal') {
-            links = generateImageUrl(note)
+            links = note.imageList.map(item => item.urlDefault)
             images.value = links
-            drawer.value = true
+            showDialog.value = true
             selectedImages.value = links
             all_selected.value = true
             handleCheckAllChange(true)
@@ -232,7 +205,7 @@ function handleCheckedChange(value) {
     <div class="xhs-download-container">
         <el-button type="danger" @click="extractDownloadLinks()">无水印下载</el-button>
     </div>
-    <el-drawer title="图片预览与下载" v-model="drawer" direction="rtl" size="50%">
+    <el-drawer title="图片预览与下载" v-model="showDialog" direction="ttb" size="100%">
         <el-checkbox-group v-model="selectedImages" @change="handleCheckedChange">
             <div class="img-list">
                 <el-checkbox :label="image" v-for="(image, index) in images" :key="index">
