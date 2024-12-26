@@ -5,25 +5,24 @@ import { getElementsByXPathAsync, sleep } from './utils/utils'
 import Cookies from 'js-cookie'
 import { throttle, debounce } from 'lodash'
 
-// 变量
+// 任务页
+const task_titles = ref([]) // 当前任务AI生成标题列表
+const now_title = ref('') // 当前页面标题
+const task_titles_loading = ref(false) // 当前任务AI生成标题列表加载状态
 const now_task_keyword = ref('') // 当前任务关键词
-let token = Cookies.get('enterprise_yyb_token')
-let Teamid = Cookies.get('TeamId')
+let token = Cookies.get('enterprise_yyb_token') // 企业TOKEN
+let Teamid = Cookies.get('TeamId') // 团队ID
 let now_page_detail_info = {
     article_project_id: 'ql3v5Roy7RaK',
 }
-let change_cover_image_obj = {}
-let save_is_change_cover = false
-let change_content = ''
-let save_is_change_content = false
-let now_page = ''
+let change_cover_image_obj = {} // 封面图片对象信息，提交时用于替换原本的封面信息
+let save_is_change_cover = false // 判断本次包含，是否有封面信息需要修改，没有则不传上面的封面对象
+let now_page = '' // 当前所在的网页
+let globalPopup = null // 任务列表页，全局公用弹窗
 // 小红书
-const idToImageNumMap = new Map()
+let idToImageNumMap = new Map()
 const imgMinNum = ref(0)
-// 标题相关
-const task_titles = ref([]) // 当前任务AI生成标题列表
-const now_title = ref('')
-const task_titles_loading = ref(false) // 当前任务AI生成标题列表加载状态
+
 // ========================================== 公用方法 ===========================================
 // 判断当前页面
 getNowPage()
@@ -31,6 +30,11 @@ function getNowPage() {
     const url = window.location.href
     if (url.includes('www.xiaohongshu.com/')) {
         now_page = 'xiaohongshu'
+
+        // 监听页面滚动，重新获取图片数量
+        listen_xiaohongshu_number()
+        // 劫持请求
+        interceptRequest()
     } else if (url.includes('www.doubao.com/')) {
         now_page = 'doubao'
     } else if (url.includes('yiyan.baidu.com')) {
@@ -39,6 +43,8 @@ function getNowPage() {
         now_page = 'tongyi'
     } else if (url.includes('ai.openvam.com')) {
         now_page = 'task'
+        // 劫持请求
+        interceptRequest()
     }
 }
 // 自定义post
@@ -94,7 +100,6 @@ function my_get(url) {
         })
     })
 }
-interceptRequest()
 // 劫持请求
 function interceptRequest() {
     // 限制领取任务反复执行
@@ -145,8 +150,6 @@ function interceptRequest() {
                 if (this.readyState === 4) {
                     // 添加事件
                     listen_table_hover()
-                    // 增加领取任务按钮
-                    add_get_task_button()
                 }
             })
         }
@@ -169,18 +172,10 @@ function interceptRequest() {
     XMLHttpRequest.prototype.send = function () {
         if (this._url.includes('/article/recreate/update')) {
             let data = JSON.parse(arguments[0])
-            // 修改标题
-            data.title = now_title.value
             // 修改封面
             if (save_is_change_cover) {
                 data.contents[1] = change_cover_image_obj
                 save_is_change_cover = false
-            }
-            // 修改内容
-            if (save_is_change_content) {
-                data.contents[0].content = change_content
-                data.contents[0].content_html = change_content
-                save_is_change_content = false
             }
             arguments[0] = JSON.stringify(data)
         }
@@ -306,7 +301,6 @@ async function change_cover() {
 }
 // ========================================== 列表相关处理 ===========================================
 // 列表获取文章详情内容
-let globalPopup = null
 async function listen_table_hover() {
     // 等待列表元素加载完成
     const trs = await getElementsByXPathAsync("//tr[contains(@class,'ant-table-row')]")
@@ -374,7 +368,7 @@ async function listen_table_hover() {
     }
     trs.forEach(tr => {
         get_article_pop(tr)
-        add_goto_xhs_button(tr)
+        // add_goto_xhs_button(tr)
     })
 }
 
@@ -395,27 +389,6 @@ async function get_article_detail(article_id, popup) {
     popup.innerHTML = html
 }
 
-// 增加领取任务按钮
-async function add_get_task_button() {
-    const formEL = (await getElementsByXPathAsync("//div[@class='get-task-container']"))[0]
-    if (formEL) {
-        if (document.querySelector('.my-get-task-button-div')) return
-
-        const my_button_div = document.createElement('div')
-        my_button_div.classList.add('my-get-task-button-div')
-
-        // 创建一键领取50条任务按钮
-        const task_50_button = document.createElement('button')
-        task_50_button.textContent = '领取任务(50条)'
-        task_50_button.classList.add('my-get-task-button') // 可以添加样式类
-        const get_task_limit = debounce(get_task, 1000)
-        task_50_button.addEventListener('click', () => get_task_limit())
-
-        my_button_div.appendChild(task_50_button)
-        formEL.appendChild(my_button_div)
-    }
-}
-
 // 领取任务方法
 async function get_task(num = 50) {
     const result = await my_post('https://yyb-api.yilancloud.com/api/article/v1/article/creative/alloc', {
@@ -429,6 +402,7 @@ async function get_task(num = 50) {
     }
     ElMessage.success('领取成功')
 }
+const get_task_limit = throttle(get_task, 1000)
 
 // ========================================== 标题相关处理 ===========================================
 // 通过AI获取延伸话题
@@ -464,30 +438,7 @@ async function changeTitle(title) {
 
     await my_post(import.meta.env.VITE_PTYHON_API_URL + '/empty_and_paste_content')
 }
-// 监听文本框输入变化   暂时无法实现，因为输入会报错，导致代码无法执行
-// listen_title_change()
-// async function listen_title_change() {
-//     // 获取可编辑的 div 元素
-//     const editableDiv = (await getElementsByXPathAsync("(//div[@class='w-e-scroll'])[1]//span[text()]"))[0]
 
-//     // 创建 MutationObserver 实例
-//     const observer = new MutationObserver(function (mutations) {
-//         // 获取当前 div 内的文本内容
-//         const text = editableDiv.innerText || editableDiv.textContent;
-
-//         console.log(text)
-//     });
-
-//     // 配置观察选项
-//     const config = {
-//         childList: true,  // 观察子节点的变化
-//         subtree: true,    // 观察所有子节点的变化
-//         characterData: true,  // 观察字符数据的变化
-//     };
-
-//     // 开始观察
-//     observer.observe(editableDiv, config);
-// }
 // ========================================== 页面跳转 和 进入页面 ===========================================
 // 详情页跳转到小红书
 async function goto_xhs(keyword) {
@@ -546,11 +497,16 @@ async function listen_auto_input() {
             // 监听来自主页的标题 - 小红书
             if (GM_getValue('xhs') == 'true') {
                 GM_setValue('xhs', 'false')
+                // 搜索内容
                 const editableDiv = (await getElementsByXPathAsync("//input[@id='search-input']"))[0]
-                // 两次聚焦，避免第一次聚焦存在延迟，导致全选选中了整个网页
                 editableDiv.focus()
                 editableDiv.focus()
                 await my_post(import.meta.env.VITE_PTYHON_API_URL + '/xhs_search')
+
+                // 清空小红书上次的残余数据
+                idToImageNumMap = new Map()
+                // 删除下载目录
+                delete_download_dir()
             }
             // 监听来自主页的标题 - 豆包
             if (GM_getValue('doubao') == 'true') {
@@ -558,7 +514,6 @@ async function listen_auto_input() {
                 const editableDiv = (
                     await getElementsByXPathAsync("//*[@id='root']/div[1]/div/div[2]/div[1]/div[1]/div/div/div[3]/div/div/div/div[3]/div[1]/div/div[1]/div/textarea")
                 )[0]
-                // 两次聚焦，避免第一次聚焦存在延迟，导致全选选中了整个网页
                 editableDiv.focus()
                 editableDiv.focus()
                 await my_post(import.meta.env.VITE_PTYHON_API_URL + '/input_ai')
@@ -567,7 +522,6 @@ async function listen_auto_input() {
             if (GM_getValue('yiyan') == 'true') {
                 GM_setValue('yiyan', 'false')
                 const editableDiv = (await getElementsByXPathAsync("//*[@id='eb_model_footer']/div[4]/div[3]/div/div/div/div[3]/div[1]/div/div"))[0]
-                // 两次聚焦，避免第一次聚焦存在延迟，导致全选选中了整个网页
                 editableDiv.focus()
                 editableDiv.focus()
                 await my_post(import.meta.env.VITE_PTYHON_API_URL + '/input_ai')
@@ -580,7 +534,7 @@ async function listen_auto_input() {
                 editableDiv.focus()
                 await my_post(import.meta.env.VITE_PTYHON_API_URL + '/input_ai')
             }
-            // 监听来自AI页面的内容
+            // 监听来自AI页面的内容 - 任务页面
             if (GM_getValue('ai_content') == 'true') {
                 GM_setValue('ai_content', 'false')
                 const editableDiv = (
@@ -596,19 +550,17 @@ async function listen_auto_input() {
 
 // ========================================== 详情页相关处理 ===========================================
 // 监听点击审核，自动执行后续操作
-
 async function listen_save_check() {
     const check_el = (await getElementsByXPathAsync("//*[@id='root']/section/div[2]/section/main/div/div/div[1]/div/div/div[1]/div[2]/button[2]"))[0]
 
     check_el.addEventListener('click', async () => {
-        console.log('监听到点击审核')
-        // 设置封面 - 被做过的帖子，封面会不正确
+        // 设置封面 - 被改过的帖子，封面会不正确
         const cover_button = (await getElementsByXPathAsync("(//button//span[text()='设为封面']/..)[1]"))[0]
         cover_button.click()
 
         await sleep(2000)
 
-        // 确定元素  这里会点击多次，所以需要判断
+        // 确定元素
         const comfirm_el = (await getElementsByXPathAsync("//div[@class='xhs-edit__info-footer']//span[text()='确 定']/.."))[0]
         comfirm_el.click()
         await sleep(2000)
@@ -636,9 +588,9 @@ async function abandon_task() {
 
 // ========================================== 小红书相关 ===========================================
 
-// 监听页面变化，页面滚动后需要重新加载
-function setupMutationObserver() {
-    const targetNode = document.body // 监听整个body的变化
+// 监听小红书帖子列表变化
+async function listen_xiaohongshu_number() {
+    const targetNode = document.body
     const config = { childList: true, subtree: true }
 
     const throttledChangeXhsListStyle = throttle(changeXhsListStyle, 1000)
@@ -653,7 +605,7 @@ function setupMutationObserver() {
 
     observer.observe(targetNode, config)
 }
-setupMutationObserver()
+
 // 添加图片数量
 function changeXhsListStyle() {
     const list = document.querySelectorAll('.note-item')
@@ -664,7 +616,7 @@ function changeXhsListStyle() {
             id = item.children[0].children[0].href.split('/')
             id = id[id.length - 1]
         } catch (error) {
-            console.error('Error extracting ID:', error)
+            // console.error('Error extracting ID:', error)
         }
 
         const imageNum = idToImageNumMap.get(id) // 通过ID快速查找image_num
@@ -708,6 +660,11 @@ async function copy_doubao_and_back() {
     await go_back_tab_from_doubao()
 }
 
+// 删除下载目录
+async function delete_download_dir() {
+    await my_post(import.meta.env.VITE_API_URL + '/delete_download')
+}
+
 onMounted(() => {
     // 详情页面给输入框的按键监听了一些东西，导致无法左右移动，这里处理一下
     const inputElements = document.querySelectorAll('.el-input__inner') // 获取输入框的 DOM 元素
@@ -731,8 +688,9 @@ onMounted(() => {
 </script>
 
 <template>
-    <div class="image-text-container">
+    <div class="image-text-container" v-if="now_page === 'task' || now_page === 'doubao'">
         <template v-if="now_page === 'task'">
+            <!-- 获取衍生AI标题 -->
             <el-button type="success" @click="getTitles()" v-loading="task_titles_loading" :disabled="task_titles_loading">获取延伸标题</el-button>
             <div class="title-list">
                 <div class="title-one" v-for="item in task_titles" :key="item" @click="changeTitle(item)">
@@ -741,14 +699,14 @@ onMounted(() => {
             </div>
             <div class="title-input">
                 <el-input v-model="now_title" placeholder="请输入标题"></el-input>
-                <el-button size="small" @click="changeTitle(now_title)">修改标题</el-button>
             </div>
-
+            <el-button size="success" @click="changeTitle(now_title)">修改标题</el-button>
             <el-button type="danger" @click="change_cover()" v-loading="cover_loading" :disabled="cover_loading">修改封面</el-button>
-            <el-button type="warning" @click="goto_xhs()">跳转到小红书</el-button>
+            <el-button type="primary" @click="goto_xhs()">跳转到小红书</el-button>
             <el-button type="primary" @click="goto_doubao()">跳转豆包</el-button>
             <!-- <el-button type="primary" @click="goto_qianwen()">跳转通义千问</el-button> -->
             <el-button type="primary" @click="goto_yiyan()">跳转文心一言</el-button>
+            <el-button type="success" @click="get_task_limit()">领取50条任务</el-button>
             <el-button type="danger" @click="abandon_task()">放弃任务</el-button>
         </template>
         <template v-else-if="now_page === 'doubao'">
@@ -756,9 +714,6 @@ onMounted(() => {
             <el-button type="success" @click="copy_doubao_and_back()">复制文案并跳转</el-button>
         </template>
     </div>
-    <!-- <el-dialog v-model="dialogVisible" title="" width="100%" :destroy-on-close="true">
-        <div class="dialog-content"></div>
-    </el-dialog> -->
 </template>
 
 <style lang="less" scoped>
