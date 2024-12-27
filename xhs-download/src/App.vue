@@ -10,7 +10,6 @@ const isIndeterminate = ref(false)
 const all_selected_label = ref('全选')
 const autoShowDownloadExplore = ref(true)
 
-
 // ============================================================== 无水印下载功能实现 ================================================================================
 let currentUrl = window.location.href
 // 获取最新的当前地址，小红书点击帖子时，url会变化，需要从url中获取ID等信息
@@ -223,6 +222,13 @@ onMounted(() => {
 
 <template>
     <div class="xhs-download-container">
+        <div class="auto-show">
+            <span>自动弹出</span>
+            <el-radio-group v-model="autoShowDownloadExplore" size="small">
+                <el-radio-button :label="true">是</el-radio-button>
+                <el-radio-button :label="false">否</el-radio-button>
+            </el-radio-group>
+        </div>
         <el-button type="danger" @click="extractDownloadLinks()">无水印下载</el-button>
     </div>
     <el-drawer title="图片预览与下载" v-model="showDialog" direction="ttb" size="100%">
@@ -237,8 +243,15 @@ onMounted(() => {
         </el-checkbox-group>
         <template #footer>
             <div class="xhs-btns">
-                <el-checkbox v-model="all_selected" :indeterminate="isIndeterminate" :label="all_selected_label"
-                    size="default" border @change="handleCheckAllChange" style="margin-right: 10px" />
+                <el-checkbox
+                    v-model="all_selected"
+                    :indeterminate="isIndeterminate"
+                    :label="all_selected_label"
+                    size="default"
+                    border
+                    @change="handleCheckAllChange"
+                    style="margin-right: 10px"
+                />
                 <el-button type="primary" @click="downloadResource(selectedImages)">下载资源</el-button>
                 <el-button type="danger" @click="closeWindow">关闭窗口</el-button>
             </div>
@@ -271,7 +284,7 @@ onMounted(() => {
         margin-bottom: 3px;
     }
 
-    .el-button+.el-button {
+    .el-button + .el-button {
         margin-left: 0px;
     }
 }
@@ -348,5 +361,17 @@ onMounted(() => {
 
 .el-drawer__header {
     margin-bottom: 0px !important;
+}
+.auto-show {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 10px;
+    margin-top: 10px;
+
+    span {
+        margin-right: 10px;
+        font-size: 16px;
+    }
 }
 </style>
