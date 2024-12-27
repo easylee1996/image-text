@@ -1,6 +1,6 @@
 <script setup>
-import { unsafeWindow, GM_xmlhttpRequest, GM_getResourceURL, GM_addValueChangeListener, GM_setValue, GM_getValue, GM_openInTab } from '$'
-import { ref, h, nextTick, onMounted } from 'vue'
+import { unsafeWindow } from '$'
+import { ref, onMounted } from 'vue'
 
 const showDialog = ref(false)
 const selectedImages = ref([])
@@ -221,7 +221,7 @@ onMounted(() => {
 </script>
 
 <template>
-    <div class="xhs-download-container">
+    <div class="xhs-download-container" v-if="!showDialog">
         <div class="auto-show">
             <span>自动弹出</span>
             <el-radio-group v-model="autoShowDownloadExplore" size="small">
