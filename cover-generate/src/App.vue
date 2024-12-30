@@ -19,6 +19,7 @@ const coverTextStyleList = [
         width: '1140px',
         height: '500px',
         lineHeight: 1.4,
+        notLength: [10, 19],
     },
     {
         id: 1,
@@ -29,6 +30,7 @@ const coverTextStyleList = [
         width: '850px',
         height: '660px',
         lineHeight: 1.4,
+        notLength: [8, 15, 22],
     },
     {
         id: 2,
@@ -39,6 +41,7 @@ const coverTextStyleList = [
         width: '820px',
         height: '680px',
         lineHeight: 1.4,
+        notLength: [7, 13, 19],
     },
     {
         id: 3,
@@ -49,6 +52,7 @@ const coverTextStyleList = [
         width: '900px',
         height: '620px',
         lineHeight: 1.4,
+        notLength: [9, 17],
     },
     {
         id: 4,
@@ -59,6 +63,7 @@ const coverTextStyleList = [
         width: '1150px',
         height: '520px',
         lineHeight: 1.4,
+        notLength: [10, 19],
     },
     {
         id: 5,
@@ -69,6 +74,7 @@ const coverTextStyleList = [
         width: '1150px',
         height: '520px',
         lineHeight: 1.4,
+        notLength: [10, 19],
     },
     {
         id: 6,
@@ -79,6 +85,7 @@ const coverTextStyleList = [
         width: '980px',
         height: '720px',
         lineHeight: 1.4,
+        notLength: [9, 17],
     },
     {
         id: 7,
@@ -89,6 +96,7 @@ const coverTextStyleList = [
         width: '1040px',
         height: '720px',
         lineHeight: 1.4,
+        notLength: [9, 17],
     },
     {
         id: 8,
@@ -100,6 +108,7 @@ const coverTextStyleList = [
         height: '720px',
         lineHeight: 1.4,
         transform: 'rotate(6deg)',
+        notLength: [9, 17],
     },
     {
         id: 9,
@@ -110,6 +119,40 @@ const coverTextStyleList = [
         width: '1060px',
         height: '680px',
         lineHeight: 1.3,
+        notLength: [9, 17],
+    },
+    {
+        id: 10,
+        top: '500px',
+        left: '130px',
+        fontStyle: 'Arial',
+        fontSize: '120px',
+        width: '950px',
+        height: '680px',
+        lineHeight: 1.6,
+        notLength: [8, 15, 22],
+    },
+    {
+        id: 11,
+        top: '500px',
+        left: '200px',
+        fontStyle: 'Arial',
+        fontSize: '120px',
+        width: '800px',
+        height: '680px',
+        lineHeight: 1.6,
+        notLength: [7, 13, 19],
+    },
+    {
+        id: 12,
+        top: '500px',
+        left: '130px',
+        fontStyle: 'Arial',
+        fontSize: '120px',
+        width: '950px',
+        height: '680px',
+        lineHeight: 1.6,
+        notLength: [8, 15, 22],
     },
 ]
 
@@ -125,13 +168,18 @@ onMounted(() => {
     for (const [key, value] of urlParams.entries()) {
         params[key] = value
     }
+
     textContent.value = params.title
 
+    const filterCoverTextStyleList = coverTextStyleList.filter(item => {
+        return !item.notLength.includes(textContent.value.length)
+    })
+
     // 随机获取coverTextStyleList中的一个
-    const randomIndex = Math.floor(Math.random() * coverTextStyleList.length)
-    imageSrc.value = `/cover_images/${randomIndex}.jpeg`
-    const randomcoverTextStyleList = coverTextStyleList[randomIndex]
-    textBoxStyle.value = randomcoverTextStyleList
+    const randomIndex = Math.floor(Math.random() * filterCoverTextStyleList.length)
+    const randomId = filterCoverTextStyleList[randomIndex].id
+    imageSrc.value = `/cover_images/${randomId}.jpeg`
+    textBoxStyle.value = filterCoverTextStyleList[randomIndex]
 })
 
 // 背景样式
