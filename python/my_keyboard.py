@@ -34,10 +34,14 @@ def empty_and_paste_content():
         print("Error occurred: ", e)
 
 
-# ai输入
-def input_ai():
+# 清空、粘贴并回车
+def empty_paste_and_enter():
     try:
         key = get_os_specific_keys()
+
+        # 执行全选 (Ctrl+A 或 Command+A)
+        with keyboard.pressed(key):
+            keyboard.tap("a")
 
         # 粘贴
         with keyboard.pressed(key):

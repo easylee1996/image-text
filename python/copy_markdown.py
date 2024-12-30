@@ -26,12 +26,31 @@ def clean_and_adjust_markdown(text):
     # 匹配###标题开头的，前面加一行空行
     pattern = r"^(###\s.*)"
     matches = re.findall(pattern, text, flags=re.MULTILINE)
-
     if matches:
         text = re.sub(r"(\n|^)(###\s.*)", r"\1\n\2", text, flags=re.MULTILINE)
         matched = True
         # 去除###
         pattern_remove_heading = r"^(###\s*)"
+        text = re.sub(pattern_remove_heading, "", text, flags=re.MULTILINE)
+
+    # 匹配##标题开头的，前面加一行空行
+    pattern = r"^(##\s.*)"
+    matches = re.findall(pattern, text, flags=re.MULTILINE)
+    if matches:
+        text = re.sub(r"(\n|^)(##\s.*)", r"\1\n\2", text, flags=re.MULTILINE)
+        matched = True
+        # 去除##
+        pattern_remove_heading = r"^(##\s*)"
+        text = re.sub(pattern_remove_heading, "", text, flags=re.MULTILINE)
+
+    # 匹配#标题开头的，前面加一行空行
+    pattern = r"^(#\s.*)"
+    matches = re.findall(pattern, text, flags=re.MULTILINE)
+    if matches:
+        text = re.sub(r"(\n|^)(#\s.*)", r"\1\n\2", text, flags=re.MULTILINE)
+        matched = True
+        # 去除#
+        pattern_remove_heading = r"^(#\s*)"
         text = re.sub(pattern_remove_heading, "", text, flags=re.MULTILINE)
 
     # 匹配“中文数字、” 开头的行，前面加一行空行

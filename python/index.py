@@ -11,7 +11,7 @@ from fastapi import Depends, FastAPI, File, Form, HTTPException, Request, Upload
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
-from my_keyboard import empty_and_paste_content, input_ai, search_xhs
+from my_keyboard import empty_and_paste_content, empty_paste_and_enter, search_xhs
 from my_tools import clear_download_directory
 from playwright.async_api import async_playwright
 
@@ -80,8 +80,9 @@ async def shutdown_event_app():
     await shutdown_event()
 
 
-@app.post("/api/template/submit_title")
-async def submit_title(request: Request, context=Depends(get_playwright_context)):
+# 生成封面
+@app.post("/generate_cover")
+async def generate_cover(request: Request, context=Depends(get_playwright_context)):
     global download_dir
     data = await request.json()
     title = data.get("title")
@@ -114,6 +115,7 @@ async def submit_title(request: Request, context=Depends(get_playwright_context)
     )
 
 
+# 获取封面图片
 @app.get("/api/cover/{filename}")
 async def serve_cover(filename: str):
     current_dir = Path(__file__).resolve().parent
@@ -124,20 +126,17 @@ async def serve_cover(filename: str):
     return FileResponse(file_path)
 
 
-# @app.get("/")
-# async def serve():
-#     return FileResponse(Path(app.root_path) / "dist" / "index.html")
-
-
+# 清空内容并粘贴内容
 @app.post("/empty_and_paste_content")
 async def change_content():
     empty_and_paste_content()
     return JSONResponse(content={"status": "true"}, status_code=200)
 
 
-@app.post("/input_ai")
+# 清空、粘贴并回车
+@app.post("/empty_paste_and_enter")
 async def change_ai():
-    input_ai()
+    empty_paste_and_enter()
     return JSONResponse(content={"status": "true"}, status_code=200)
 
 
@@ -201,4 +200,11 @@ app.mount(
 )
 
 if __name__ == "__main__":
-    uvicorn.run(app="index:app", host="0.0.0.0", port=6174, log_level="info", workers=1)
+    uvicorn.run(
+        app="index:app",
+        host="0.0.0.0",
+        port=6174,
+        log_level="error",
+        workers=1,
+        reload=False,
+    )

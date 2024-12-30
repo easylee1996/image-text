@@ -242,7 +242,7 @@ async function change_cover() {
     cover_loading.value = true
     ElMessage.warning('正在修改封面...')
     // 0.首先创建封面图片
-    const result0 = await my_post(import.meta.env.VITE_PTYHON_API_URL + '/api/template/submit_title', { title: now_title.value })
+    const result0 = await my_post(import.meta.env.VITE_PTYHON_API_URL + '/generate_cover', { title: now_title.value })
     console.log(result0)
 
     // 1.获取阿里云 oss 地址
@@ -533,7 +533,7 @@ async function listen_auto_input() {
                 const editableDiv = (await getElementsByXPathAsync("//textarea[@data-testid='chat_input_input']"))[0]
                 editableDiv.focus()
                 editableDiv.focus()
-                await my_post(import.meta.env.VITE_PTYHON_API_URL + '/input_ai')
+                await my_post(import.meta.env.VITE_PTYHON_API_URL + '/empty_paste_and_enter')
             }
             // 监听来自主页的标题 - 文心一言
             if (GM_getValue('yiyan') == 'true') {
@@ -541,7 +541,7 @@ async function listen_auto_input() {
                 const editableDiv = (await getElementsByXPathAsync("//*[@id='eb_model_footer']/div[4]/div[3]/div/div/div/div[3]/div[1]/div/div"))[0]
                 editableDiv.focus()
                 editableDiv.focus()
-                await my_post(import.meta.env.VITE_PTYHON_API_URL + '/input_ai')
+                await my_post(import.meta.env.VITE_PTYHON_API_URL + '/empty_paste_and_enter')
             }
             // 监听来自主页的标题 - 通义千问    存在偶发无法注入脚本问题，后期再解决，暂时没有使用千问进行生成
             if (GM_getValue('tongyi') == 'true') {
@@ -549,7 +549,7 @@ async function listen_auto_input() {
                 const editableDiv = (await getElementsByXPathAsync("//*[@id='tongyiPageLayout']/div[3]/div/div[2]/div[1]/div[3]/div[2]/div/div[2]/div/textarea"))[0]
                 editableDiv.focus()
                 editableDiv.focus()
-                await my_post(import.meta.env.VITE_PTYHON_API_URL + '/input_ai')
+                await my_post(import.meta.env.VITE_PTYHON_API_URL + '/empty_paste_and_enter')
             }
             // 监听来自AI页面的内容 - 任务页面
             if (GM_getValue('ai_content') == 'true') {
