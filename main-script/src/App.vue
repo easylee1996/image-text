@@ -1,6 +1,6 @@
 <script setup>
 import { GM_xmlhttpRequest, GM_getResourceURL, GM_addValueChangeListener, GM_setValue, GM_getValue, GM_openInTab } from '$'
-import { ref, h, nextTick, onMounted } from 'vue'
+import { ref, h, onMounted } from 'vue'
 import { getElementsByXPathAsync, sleep } from './utils/utils'
 import Cookies from 'js-cookie'
 import { throttle, debounce } from 'lodash'
@@ -19,6 +19,7 @@ let change_cover_image_obj = {} // 封面图片对象信息，提交时用于替
 let save_is_change_cover = false // 判断本次包含，是否有封面信息需要修改，没有则不传上面的封面对象
 let now_page = '' // 当前所在的网页
 let globalPopup = null // 任务列表页，全局公用弹窗
+const autoGetTask = ref(true) // 是否自动获取任务
 // 小红书
 let idToImageNumMap = new Map()
 const imgMinNum = ref(0)
@@ -28,14 +29,18 @@ const imgMinNum = ref(0)
 getNowPage()
 function getNowPage() {
     const url = window.location.href
-    if (url.includes('www.xiaohongshu.com/')) {
+    if (url.includes('www.xiaohongshu.com')) {
         now_page = 'xiaohongshu'
 
         // 监听页面滚动，重新获取图片数量
         listen_xiaohongshu_number()
         // 劫持请求
         interceptRequest()
-    } else if (url.includes('www.doubao.com/')) {
+        // 增加小红书左侧列表相关按钮
+        add_xhs_left_list_buttons()
+        // 增加小红书弹窗相关按钮
+        add_xhs_dialog_list_buttons()
+    } else if (url.includes('www.doubao.com')) {
         now_page = 'doubao'
     } else if (url.includes('yiyan.baidu.com')) {
         now_page = 'yiyan'
@@ -56,10 +61,10 @@ function my_post(url, data, headers = null) {
             headers: headers
                 ? headers
                 : {
-                    'Content-Type': 'application/json',
-                    Token: token,
-                    Teamid: Teamid,
-                },
+                      'Content-Type': 'application/json',
+                      Token: token,
+                      Teamid: Teamid,
+                  },
             data: JSON.stringify(data),
             onload: function (response) {
                 if (response.status === 200) {
@@ -102,8 +107,6 @@ function my_get(url) {
 }
 // 劫持请求
 function interceptRequest() {
-    // 限制领取任务反复执行
-    const get_task_limit = debounce(get_task, 1000)
     // 返回劫持
     const originOpen = XMLHttpRequest.prototype.open
     XMLHttpRequest.prototype.open = function (_, url) {
@@ -145,7 +148,7 @@ function interceptRequest() {
         // 列表页面
         if (url.includes('/article/recreate/tasks')) {
             // 先获取任务
-            get_task_limit()
+            if (autoGetTask.value) get_task_limit()
             this.addEventListener('readystatechange', function () {
                 if (this.readyState === 4) {
                     // 添加事件
@@ -446,8 +449,8 @@ async function goto_xhs(keyword) {
     await navigator.clipboard.writeText(now_task_keyword.value)
     const urlPart = 'www.xiaohongshu.com'
     chrome.runtime.sendMessage(import.meta.env.VITE_CHROME_PLUGIN_ID, { action: 'activateTab', urlPart: urlPart }, response => {
-        GM_setValue('backTabId', response.tabId)
-        GM_setValue('backWindowId', response.windowId)
+        GM_setValue('xhsBackTabId', response.tabId)
+        GM_setValue('xhsBackWindowId', response.windowId)
     })
 }
 // 跳转文心一言
@@ -456,8 +459,8 @@ async function goto_yiyan() {
     await navigator.clipboard.writeText(now_task_keyword.value)
     const urlPart = 'yiyan.baidu.com'
     chrome.runtime.sendMessage(import.meta.env.VITE_CHROME_PLUGIN_ID, { action: 'activateTab', urlPart: urlPart }, response => {
-        GM_setValue('backTabId', response.tabId)
-        GM_setValue('backWindowId', response.windowId)
+        GM_setValue('aiBackTabId', response.tabId)
+        GM_setValue('aiBackWindowId', response.windowId)
     })
 }
 // 跳转豆包
@@ -466,8 +469,8 @@ async function goto_doubao() {
     await navigator.clipboard.writeText(now_task_keyword.value)
     const urlPart = 'www.doubao.com'
     chrome.runtime.sendMessage(import.meta.env.VITE_CHROME_PLUGIN_ID, { action: 'activateTab', urlPart: urlPart }, response => {
-        GM_setValue('backTabId', response.tabId)
-        GM_setValue('backWindowId', response.windowId)
+        GM_setValue('aiBackTabId', response.tabId)
+        GM_setValue('aiBackWindowId', response.windowId)
     })
 }
 // 跳转通义千问
@@ -476,18 +479,34 @@ async function goto_qianwen() {
     await navigator.clipboard.writeText(now_task_keyword.value)
     const urlPart = 'tongyi.aliyun.com'
     chrome.runtime.sendMessage(import.meta.env.VITE_CHROME_PLUGIN_ID, { action: 'activateTab', urlPart: urlPart }, response => {
-        GM_setValue('backTabId', response.tabId)
-        GM_setValue('backWindowId', response.windowId)
+        GM_setValue('aiBackTabId', response.tabId)
+        GM_setValue('aiBackWindowId', response.windowId)
     })
 }
 // 从豆包跳转到上一个标签tab - 复制内容
 async function go_back_tab_from_doubao() {
     GM_setValue('ai_content', 'true')
-    if (!GM_getValue('backTabId') || !GM_getValue('backWindowId')) {
+    if (!GM_getValue('aiBackTabId') || !GM_getValue('aiBackWindowId')) {
         ElMessage.error('没有找到上一个标签页')
         return
     }
-    chrome.runtime.sendMessage(import.meta.env.VITE_CHROME_PLUGIN_ID, { action: 'backTab', tabId: GM_getValue('backTabId'), windowId: GM_getValue('backWindowId') }, response => { })
+    chrome.runtime.sendMessage(
+        import.meta.env.VITE_CHROME_PLUGIN_ID,
+        { action: 'backTab', tabId: GM_getValue('aiBackTabId'), windowId: GM_getValue('aiBackWindowId') },
+        response => {},
+    )
+}
+// 从小红书跳转回文章详情页
+async function go_back_tab_from_xhs() {
+    if (!GM_getValue('xhsBackTabId') || !GM_getValue('xhsBackWindowId')) {
+        ElMessage.error('没有找到上一个标签页')
+        return
+    }
+    chrome.runtime.sendMessage(
+        import.meta.env.VITE_CHROME_PLUGIN_ID,
+        { action: 'backTab', tabId: GM_getValue('xhsBackTabId'), windowId: GM_getValue('xhsBackWindowId') },
+        response => {},
+    )
 }
 // 监听从主页面跳转过来，自动执行输入操作
 listen_auto_input()
@@ -506,14 +525,12 @@ async function listen_auto_input() {
                 // 清空小红书上次的残余数据
                 idToImageNumMap = new Map()
                 // 删除下载目录
-                delete_download_dir()
+                empty_download_dir()
             }
             // 监听来自主页的标题 - 豆包
             if (GM_getValue('doubao') == 'true') {
                 GM_setValue('doubao', 'false')
-                const editableDiv = (
-                    await getElementsByXPathAsync("//*[@id='root']/div[1]/div/div[2]/div[1]/div[1]/div/div/div[3]/div/div/div/div[3]/div[1]/div/div[1]/div/textarea")
-                )[0]
+                const editableDiv = (await getElementsByXPathAsync("//textarea[@data-testid='chat_input_input']"))[0]
                 editableDiv.focus()
                 editableDiv.focus()
                 await my_post(import.meta.env.VITE_PTYHON_API_URL + '/input_ai')
@@ -628,7 +645,50 @@ function changeXhsListStyle() {
         }
     })
 }
+// 增加小红书左侧列表相关按钮
+async function add_xhs_left_list_buttons() {
+    const clearEl = document.querySelector('.xhs-clear-cache')
+    if (!clearEl) {
+        // 清除小红书缓存
+        const clearCacheButton = document.createElement('button')
+        clearCacheButton.className = 'xhs-clear-cache el-button el-button--danger'
+        clearCacheButton.textContent = '清除小红书缓存'
+        clearCacheButton.addEventListener('click', async () => {
+            chrome.runtime.sendMessage(import.meta.env.VITE_CHROME_PLUGIN_ID, { action: 'clearCache' }, response => {
+                ElMessage.success('清除成功')
+            })
+        })
+        // 增加返回主页按钮
+        const goBackButton = document.createElement('button')
+        goBackButton.className = 'xhs-clear-cache el-button el-button--success'
+        goBackButton.textContent = '返回主页文章'
+        goBackButton.addEventListener('click', async () => {
+            go_back_tab_from_xhs()
+        })
+
+        const xhsButtonList = (await getElementsByXPathAsync("//div[contains(@class, 'xhs-download-container')]"))[0]
+        xhsButtonList.appendChild(clearCacheButton)
+        xhsButtonList.appendChild(goBackButton)
+    }
+}
+// 增加小红书弹窗内相关按钮
+async function add_xhs_dialog_list_buttons() {
+    const clearEl = document.querySelector('.empty-download-file')
+    if (!clearEl) {
+        // 清空下载目录
+        const emptyBtn = document.createElement('button')
+        emptyBtn.className = 'empty-download-file el-button el-button--danger'
+        emptyBtn.textContent = '清空下载目录'
+        emptyBtn.addEventListener('click', async () => {
+            empty_download_dir()
+        })
+
+        const xhsButtonList = (await getElementsByXPathAsync("//div[@class='xhs-btns']"))[0]
+        xhsButtonList.appendChild(emptyBtn)
+    }
+}
 // ========================================== 其它功能处理 ===========================================
+
 // 进入详情页的默认操作
 async function detail_init_todos() {
     // 1.设置标题
@@ -660,8 +720,8 @@ async function copy_doubao_and_back() {
     await go_back_tab_from_doubao()
 }
 
-// 删除下载目录
-async function delete_download_dir() {
+// 清空下载目录
+async function empty_download_dir() {
     await my_post(import.meta.env.VITE_PTYHON_API_URL + '/delete_download')
 }
 
@@ -691,19 +751,24 @@ onMounted(() => {
     <div class="image-text-container" v-if="now_page === 'task' || now_page === 'doubao'">
         <template v-if="now_page === 'task'">
             <!-- 获取衍生AI标题 -->
-            <el-button type="success" @click="getTitles()" v-loading="task_titles_loading"
-                :disabled="task_titles_loading">获取延伸标题</el-button>
+            <el-button type="success" @click="getTitles()" v-loading="task_titles_loading" :disabled="task_titles_loading">获取延伸标题</el-button>
             <div class="title-list">
                 <div class="title-one" v-for="item in task_titles" :key="item" @click="changeTitle(item)">
                     {{ item }}
                 </div>
             </div>
+            <div class="auto-get">
+                <span>自动获取</span>
+                <el-radio-group v-model="autoGetTask" size="small">
+                    <el-radio-button :label="true">是</el-radio-button>
+                    <el-radio-button :label="false">否</el-radio-button>
+                </el-radio-group>
+            </div>
+            <el-button size="success" @click="changeTitle(now_title)">修改标题</el-button>
             <div class="title-input">
                 <el-input v-model="now_title" placeholder="请输入标题"></el-input>
             </div>
-            <el-button size="success" @click="changeTitle(now_title)">修改标题</el-button>
-            <el-button type="danger" @click="change_cover()" v-loading="cover_loading"
-                :disabled="cover_loading">修改封面</el-button>
+            <el-button type="danger" @click="change_cover()" v-loading="cover_loading" :disabled="cover_loading">修改封面</el-button>
             <el-button type="primary" @click="goto_xhs()">跳转到小红书</el-button>
             <el-button type="primary" @click="goto_doubao()">跳转豆包</el-button>
             <!-- <el-button type="primary" @click="goto_qianwen()">跳转通义千问</el-button> -->
@@ -743,7 +808,7 @@ onMounted(() => {
         margin-bottom: 8px;
     }
 
-    .el-button+.el-button {
+    .el-button + .el-button {
         margin-left: 0px;
     }
 
@@ -885,5 +950,22 @@ onMounted(() => {
     cursor: pointer;
     overflow: visible;
     z-index: 999;
+}
+.xhs-clear-cache {
+    width: 98%;
+    margin-left: 0px !important;
+    margin-top: 5px;
+}
+
+.auto-get {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 10px;
+
+    span {
+        margin-right: 10px;
+        font-size: 16px;
+    }
 }
 </style>

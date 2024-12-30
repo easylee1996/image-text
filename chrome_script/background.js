@@ -7,6 +7,9 @@ chrome.runtime.onMessageExternal.addListener((message, sender, sendResponse) => 
     } else if (message.action === 'backTab') {
         backTab(message, sender, sendResponse)
         return true
+    } else if (message.action === 'clearCache') {
+        clearCache(message, sender, sendResponse)
+        return true
     }
 })
 
@@ -37,5 +40,32 @@ function backTab(message, sender, sendResponse) {
     chrome.tabs.update(message.tabId, { active: true })
     chrome.windows.update(message.windowId, { focused: true })
 
+    return true
+}
+
+// 清除浏览器缓存
+function clearCache(message, sender, sendResponse) {
+    const millisecondsPerWeek = 1000 * 60 * 60 * 24 * 30
+    const ago = new Date().getTime() - millisecondsPerWeek
+    const siteOrigin = 'https://www.xiaohongshu.com' // 指定你想清除数据的网站原点
+    chrome.browsingData.remove(
+        {
+            since: ago,
+            origins: [siteOrigin],
+        },
+        {
+            appcache: true, // 有的类型原点是不支持的
+            cookies: true,
+            fileSystems: true,
+            indexedDB: true,
+            localStorage: true,
+            pluginData: false,
+            serviceWorkers: true,
+        },
+        () => {
+            console.log('Cache cleared success')
+            sendResponse({ status: 'success' })
+        },
+    )
     return true
 }

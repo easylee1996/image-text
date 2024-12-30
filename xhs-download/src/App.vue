@@ -94,6 +94,12 @@ const downloadResource = async urls => {
     await downloadImage(urls, name)
 }
 
+// 下载并关闭按钮
+const downloadFileAndClose = () => {
+    downloadResource(selectedImages.value)
+    closeWindow()
+}
+
 // 下载预处理1 - 获取url
 const exploreDeal = async note => {
     try {
@@ -221,7 +227,7 @@ onMounted(() => {
 </script>
 
 <template>
-    <div class="xhs-download-container" v-if="!showDialog">
+    <div class="xhs-download-container" v-show="!showDialog">
         <div class="auto-show">
             <span>自动弹出</span>
             <el-radio-group v-model="autoShowDownloadExplore" size="small">
@@ -229,7 +235,7 @@ onMounted(() => {
                 <el-radio-button :label="false">否</el-radio-button>
             </el-radio-group>
         </div>
-        <el-button type="danger" @click="extractDownloadLinks()">无水印下载</el-button>
+        <el-button type="primary" @click="extractDownloadLinks()">无水印下载</el-button>
     </div>
     <el-drawer title="图片预览与下载" v-model="showDialog" direction="ttb" size="100%">
         <el-checkbox-group v-model="selectedImages" @change="handleCheckedChange">
@@ -252,6 +258,7 @@ onMounted(() => {
                     @change="handleCheckAllChange"
                     style="margin-right: 10px"
                 />
+                <el-button type="primary" @click="downloadFileAndClose">下载并关闭</el-button>
                 <el-button type="primary" @click="downloadResource(selectedImages)">下载资源</el-button>
                 <el-button type="danger" @click="closeWindow">关闭窗口</el-button>
             </div>
@@ -292,7 +299,7 @@ onMounted(() => {
 <style>
 .img-list {
     display: grid;
-    grid-template-columns: repeat(6, 1fr);
+    grid-template-columns: repeat(5, 1fr);
     gap: 10px;
     padding: 10px;
     border-radius: 8px;
