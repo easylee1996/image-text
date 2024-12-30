@@ -1,5 +1,6 @@
 <script setup>
-import { unsafeWindow } from '$'
+import { unsafeWindow, GM_getValue, GM_setValue } from '$'
+import { ElMessage } from 'element-plus'
 import { ref, onMounted } from 'vue'
 
 const showDialog = ref(false)
@@ -10,6 +11,17 @@ const isIndeterminate = ref(false)
 const all_selected_label = ref('全选')
 const autoShowDownloadExplore = ref(true)
 
+// ========================================== 公用方法 ===========================================
+// 获取相关初始配置
+getInitValue()
+function getInitValue() {
+    // 自动弹出弹窗
+    autoShowDownloadExplore.value = GM_getValue('autoShowDownloadExplore', true)
+}
+// 切换自动弹出弹窗
+function autoShowDownloadExploreChange(e) {
+    GM_setValue('autoShowDownloadExplore', e)
+}
 // ============================================================== 无水印下载功能实现 ================================================================================
 let currentUrl = window.location.href
 // 获取最新的当前地址，小红书点击帖子时，url会变化，需要从url中获取ID等信息
@@ -230,7 +242,7 @@ onMounted(() => {
     <div class="xhs-download-container" v-show="!showDialog">
         <div class="auto-show">
             <span>自动弹出</span>
-            <el-radio-group v-model="autoShowDownloadExplore" size="small">
+            <el-radio-group v-model="autoShowDownloadExplore" size="small" @change="autoShowDownloadExploreChange">
                 <el-radio-button :label="true">是</el-radio-button>
                 <el-radio-button :label="false">否</el-radio-button>
             </el-radio-group>

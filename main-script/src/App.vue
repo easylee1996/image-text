@@ -4,6 +4,7 @@ import { ref, h, onMounted } from 'vue'
 import { getElementsByXPathAsync, sleep } from './utils/utils'
 import Cookies from 'js-cookie'
 import { throttle, debounce } from 'lodash'
+import { ElMessage, ElNotification } from 'element-plus'
 
 // 任务页
 const task_titles = ref([]) // 当前任务AI生成标题列表
@@ -20,11 +21,39 @@ let save_is_change_cover = false // 判断本次包含，是否有封面信息�
 let now_page = '' // 当前所在的网页
 let globalPopup = null // 任务列表页，全局公用弹窗
 const autoGetTask = ref(true) // 是否自动获取任务
+const listScope = ref('all') // 任务列表范围，all：全部，firstHalf：前半部分，secondHalf：后半部分
 // 小红书
 let idToImageNumMap = new Map()
 const imgMinNum = ref(0)
 
 // ========================================== 公用方法 ===========================================
+// 获取相关初始配置
+getInitValue()
+function getInitValue() {
+    // 自动获取任务
+    autoGetTask.value = GM_getValue('autoGetTask', true)
+    // 任务列表范围
+    listScope.value = GM_getValue('listScope', 'all')
+}
+// 切换自动获取配置
+function autoGetTaskChange(e) {
+    if (listScope.value !== 'all') {
+        ElMessage.warning('已开启多人协作，无法启用自动获取任务')
+        autoGetTask.value = false
+        GM_setValue('autoGetTask', false)
+        return
+    }
+    GM_setValue('autoGetTask', e)
+}
+// 多人协作配置
+function listScopeChange(e) {
+    if (e !== 'all') {
+        ElMessage.warning('非全部任务列表，已自动关闭自动获取任务')
+        GM_setValue('autoGetTask', false)
+        autoGetTask.value = false
+    }
+    GM_setValue('listScope', e)
+}
 // 判断当前页面
 getNowPage()
 function getNowPage() {
@@ -151,6 +180,21 @@ function interceptRequest() {
             if (autoGetTask.value) get_task_limit()
             this.addEventListener('readystatechange', function () {
                 if (this.readyState === 4) {
+                    const res = JSON.parse(this.responseText) // 当前 xhr 对象上定义 responseText
+                    Object.defineProperty(this, 'responseText', {
+                        writable: true,
+                    })
+
+                    // 多人协作，一个人显示一半的任务
+                    let midIndex = Math.ceil(res.data.tasks.length / 2)
+                    if (listScope.value === 'firstHalf') {
+                        res.data.tasks = res.data.tasks.slice(0, midIndex)
+                    } else if (listScope.value === 'secondHalf') {
+                        res.data.tasks = res.data.tasks.slice(midIndex)
+                    }
+
+                    this.responseText = JSON.stringify(res)
+
                     // 添加事件
                     listen_table_hover()
                 }
@@ -750,21 +794,29 @@ onMounted(() => {
 <template>
     <div class="image-text-container" v-if="now_page === 'task' || now_page === 'doubao'">
         <template v-if="now_page === 'task'">
+            <div class="auto-get">
+                <span>协作</span>
+                <el-radio-group v-model="listScope" size="small" @change="listScopeChange">
+                    <el-radio-button :value="'all'">全部</el-radio-button>
+                    <el-radio-button :value="'firstHalf'">前</el-radio-button>
+                    <el-radio-button :value="'secondHalf'">后</el-radio-button>
+                </el-radio-group>
+            </div>
+            <div class="auto-get">
+                <span>自动获取</span>
+                <el-radio-group v-model="autoGetTask" size="small" @change="autoGetTaskChange">
+                    <el-radio-button :value="true">是</el-radio-button>
+                    <el-radio-button :value="false">否</el-radio-button>
+                </el-radio-group>
+            </div>
             <!-- 获取衍生AI标题 -->
-            <el-button type="success" @click="getTitles()" v-loading="task_titles_loading" :disabled="task_titles_loading">获取延伸标题</el-button>
+            <!-- <el-button type="success" @click="getTitles()" v-loading="task_titles_loading" :disabled="task_titles_loading">获取延伸标题</el-button> -->
             <div class="title-list">
                 <div class="title-one" v-for="item in task_titles" :key="item" @click="changeTitle(item)">
                     {{ item }}
                 </div>
             </div>
-            <div class="auto-get">
-                <span>自动获取</span>
-                <el-radio-group v-model="autoGetTask" size="small">
-                    <el-radio-button :label="true">是</el-radio-button>
-                    <el-radio-button :label="false">否</el-radio-button>
-                </el-radio-group>
-            </div>
-            <el-button size="success" @click="changeTitle(now_title)">修改标题</el-button>
+            <el-button type="success" @click="changeTitle(now_title)">修改标题</el-button>
             <div class="title-input">
                 <el-input v-model="now_title" placeholder="请输入标题"></el-input>
             </div>
@@ -772,8 +824,8 @@ onMounted(() => {
             <el-button type="primary" @click="goto_xhs()">跳转到小红书</el-button>
             <el-button type="primary" @click="goto_doubao()">跳转豆包</el-button>
             <!-- <el-button type="primary" @click="goto_qianwen()">跳转通义千问</el-button> -->
-            <el-button type="primary" @click="goto_yiyan()">跳转文心一言</el-button>
-            <el-button type="success" @click="get_task_limit()">领取50条任务</el-button>
+            <!-- <el-button type="primary" @click="goto_yiyan()">跳转文心一言</el-button> -->
+            <!-- <el-button type="success" @click="get_task_limit()">领取50条任务</el-button> -->
             <el-button type="danger" @click="abandon_task()">放弃任务</el-button>
         </template>
         <template v-else-if="now_page === 'doubao'">
@@ -963,7 +1015,7 @@ onMounted(() => {
     align-items: center;
     margin-bottom: 10px;
 
-    span {
+    & > span {
         margin-right: 10px;
         font-size: 16px;
     }

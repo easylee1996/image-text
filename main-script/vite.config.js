@@ -7,6 +7,7 @@ import Components from 'unplugin-vue-components/vite'
 import IconsResolver from 'unplugin-icons/resolver'
 import Icons from 'unplugin-icons/vite'
 import { ElementPlusResolver } from 'unplugin-vue-components/resolvers'
+import ElementPlus from 'unplugin-element-plus/vite'
 
 const pathSrc = path.resolve(__dirname, 'src')
 
@@ -19,6 +20,8 @@ export default defineConfig({
     },
     plugins: [
         vue(),
+        // bug: 本身是不需要引入的，但是不引入，弹窗提示之类的没有样式，只能引入一下
+        ElementPlus(),
         AutoImport({
             // Auto import functions from Vue, e.g. ref, reactive, toRef...
             // 自动导入 Vue 相关函数，如：ref, reactive, toRef 等
