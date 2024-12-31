@@ -20,6 +20,7 @@ const coverTextStyleList = [
         height: '500px',
         lineHeight: 1.4,
         notLength: [10, 19],
+        macNotLength: [11, 20],
     },
     {
         id: 1,
@@ -31,6 +32,7 @@ const coverTextStyleList = [
         height: '660px',
         lineHeight: 1.4,
         notLength: [8, 15, 22],
+        macNotLength: [8, 15, 22],
     },
     {
         id: 2,
@@ -42,6 +44,7 @@ const coverTextStyleList = [
         height: '680px',
         lineHeight: 1.4,
         notLength: [7, 13, 19],
+        macNotLength: [7, 13, 19],
     },
     {
         id: 3,
@@ -53,6 +56,7 @@ const coverTextStyleList = [
         height: '620px',
         lineHeight: 1.4,
         notLength: [9, 17],
+        macNotLength: [9, 17],
     },
     {
         id: 4,
@@ -64,6 +68,7 @@ const coverTextStyleList = [
         height: '520px',
         lineHeight: 1.4,
         notLength: [10, 19],
+        macNotLength: [11, 20],
     },
     {
         id: 5,
@@ -75,6 +80,7 @@ const coverTextStyleList = [
         height: '520px',
         lineHeight: 1.4,
         notLength: [10, 19],
+        macNotLength: [11, 20],
     },
     {
         id: 6,
@@ -86,6 +92,7 @@ const coverTextStyleList = [
         height: '720px',
         lineHeight: 1.4,
         notLength: [9, 17],
+        macNotLength: [9, 17],
     },
     {
         id: 7,
@@ -97,6 +104,7 @@ const coverTextStyleList = [
         height: '720px',
         lineHeight: 1.4,
         notLength: [9, 17],
+        macNotLength: [9, 17],
     },
     {
         id: 8,
@@ -109,6 +117,7 @@ const coverTextStyleList = [
         lineHeight: 1.4,
         transform: 'rotate(6deg)',
         notLength: [9, 17],
+        macNotLength: [9, 17],
     },
     {
         id: 9,
@@ -120,6 +129,7 @@ const coverTextStyleList = [
         height: '680px',
         lineHeight: 1.3,
         notLength: [9, 17],
+        macNotLength: [9, 17],
     },
     {
         id: 10,
@@ -131,6 +141,7 @@ const coverTextStyleList = [
         height: '680px',
         lineHeight: 1.6,
         notLength: [8, 15, 22],
+        macNotLength: [8, 15, 22],
     },
     {
         id: 11,
@@ -142,6 +153,7 @@ const coverTextStyleList = [
         height: '680px',
         lineHeight: 1.6,
         notLength: [7, 13, 19],
+        macNotLength: [7, 13, 19],
     },
     {
         id: 12,
@@ -153,6 +165,7 @@ const coverTextStyleList = [
         height: '680px',
         lineHeight: 1.6,
         notLength: [8, 15, 22],
+        macNotLength: [8, 15, 22],
     },
 ]
 
@@ -176,7 +189,7 @@ onMounted(() => {
     const isMac = userAgent.includes('mac') ? true : false
 
     const filterCoverTextStyleList = coverTextStyleList.filter(item => {
-        if (isMac) return !item.notLength.includes(textContent.value.length - 1)
+        if (isMac) return !item.macNotLength.includes(textContent.value.length - 1)
         return !item.notLength.includes(textContent.value.length)
     })
 
