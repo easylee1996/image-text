@@ -184,12 +184,12 @@ onMounted(() => {
 
     textContent.value = params.title
 
-    // 判断电脑系统版本, mac无头模式，字体排版样式不一样，导致换行的字数不一样
+    // 判断电脑系统版本, mac无头模式，字体排版样式不一样，导致换行的字数不一样,所以必须分别设置
     const userAgent = navigator.userAgent.toLowerCase()
     const isMac = userAgent.includes('mac') ? true : false
 
     const filterCoverTextStyleList = coverTextStyleList.filter(item => {
-        if (isMac) return !item.macNotLength.includes(textContent.value.length - 1)
+        if (isMac) return !item.macNotLength.includes(textContent.value.length)
         return !item.notLength.includes(textContent.value.length)
     })
 
