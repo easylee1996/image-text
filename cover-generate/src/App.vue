@@ -20,7 +20,7 @@ const coverTextStyleList = [
         height: '500px',
         lineHeight: 1.4,
         notLength: [10, 19],
-        macNotLength: [11, 20],
+        macNotLength: [11, 21],
     },
     {
         id: 1,
@@ -44,7 +44,7 @@ const coverTextStyleList = [
         height: '680px',
         lineHeight: 1.4,
         notLength: [7, 13, 19],
-        macNotLength: [7, 13, 19],
+        macNotLength: [8, 15, 22],
     },
     {
         id: 3,
@@ -68,7 +68,7 @@ const coverTextStyleList = [
         height: '520px',
         lineHeight: 1.4,
         notLength: [10, 19],
-        macNotLength: [11, 20],
+        macNotLength: [11, 21],
     },
     {
         id: 5,
@@ -80,7 +80,7 @@ const coverTextStyleList = [
         height: '520px',
         lineHeight: 1.4,
         notLength: [10, 19],
-        macNotLength: [11, 20],
+        macNotLength: [11, 21],
     },
     {
         id: 6,
@@ -104,7 +104,7 @@ const coverTextStyleList = [
         height: '720px',
         lineHeight: 1.4,
         notLength: [9, 17],
-        macNotLength: [9, 17],
+        macNotLength: [10, 19],
     },
     {
         id: 8,
@@ -129,7 +129,7 @@ const coverTextStyleList = [
         height: '680px',
         lineHeight: 1.3,
         notLength: [9, 17],
-        macNotLength: [9, 17],
+        macNotLength: [10, 19],
     },
     {
         id: 10,
@@ -141,7 +141,7 @@ const coverTextStyleList = [
         height: '680px',
         lineHeight: 1.6,
         notLength: [8, 15, 22],
-        macNotLength: [8, 15, 22],
+        macNotLength: [9, 17, 25],
     },
     {
         id: 11,
@@ -153,7 +153,7 @@ const coverTextStyleList = [
         height: '680px',
         lineHeight: 1.6,
         notLength: [7, 13, 19],
-        macNotLength: [7, 13, 19],
+        macNotLength: [8, 15, 22],
     },
     {
         id: 12,
@@ -165,7 +165,7 @@ const coverTextStyleList = [
         height: '680px',
         lineHeight: 1.6,
         notLength: [8, 15, 22],
-        macNotLength: [8, 15, 22],
+        macNotLength: [9, 17, 25],
     },
 ]
 
@@ -187,6 +187,8 @@ onMounted(() => {
     // 判断电脑系统版本, mac无头模式，字体排版样式不一样，导致换行的字数不一样,所以必须分别设置
     const userAgent = navigator.userAgent.toLowerCase()
     const isMac = userAgent.includes('mac') ? true : false
+
+    console.log(11111, isMac, textContent.value.length)
 
     const filterCoverTextStyleList = coverTextStyleList.filter(item => {
         if (isMac) return !item.macNotLength.includes(textContent.value.length)
