@@ -155,18 +155,6 @@ const coverTextStyleList = [
         notLength: [7, 13, 19],
         macNotLength: [8, 15, 22],
     },
-    {
-        id: 12,
-        top: '500px',
-        left: '130px',
-        fontStyle: 'Arial',
-        fontSize: '120px',
-        width: '950px',
-        height: '680px',
-        lineHeight: 1.6,
-        notLength: [8, 15, 22],
-        macNotLength: [9, 17, 25],
-    },
 ]
 
 // 初始化数据
