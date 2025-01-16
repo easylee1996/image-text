@@ -615,12 +615,6 @@ async function listen_save_check() {
     const check_el = (await getElementsByXPathAsync("//*[@id='root']/section/div[2]/section/main/div/div/div[1]/div/div/div[1]/div[2]/button[2]"))[0]
 
     check_el.addEventListener('click', async () => {
-        // 设置封面 - 被改过的帖子，封面会不正确
-        const cover_button = (await getElementsByXPathAsync("(//button//span[text()='设为封面']/..)[1]"))[0]
-        cover_button.click()
-
-        await sleep(2000)
-
         // 确定元素
         const comfirm_el = (await getElementsByXPathAsync("//div[@class='xhs-edit__info-footer']//span[text()='确 定']/.."))[0]
         comfirm_el.click()
