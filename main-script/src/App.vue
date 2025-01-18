@@ -830,7 +830,7 @@ onMounted(() => {
             <el-button type="primary" @click="goto_xhs()">跳转到小红书</el-button>
             <el-button type="primary" @click="goto_doubao()">跳转豆包</el-button>
             <!-- <el-button type="primary" @click="goto_qianwen()">跳转通义千问</el-button> -->
-            <!-- <el-button type="primary" @click="goto_yiyan()">跳转文心一言</el-button> -->
+            <el-button type="primary" @click="goto_yiyan()">跳转文心一言</el-button>
             <!-- <el-button type="success" @click="get_task_limit()">领取50条任务</el-button> -->
             <el-button type="danger" @click="abandon_task()">放弃任务</el-button>
         </template>
