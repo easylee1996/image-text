@@ -540,6 +540,18 @@ async function go_back_tab_from_doubao() {
         response => {},
     )
 }
+// 从豆包跳转到上一个标签tab - 不复制内容
+async function go_back_tab_from_doubao_no_copy() {
+    if (!GM_getValue('aiBackTabId') || !GM_getValue('aiBackWindowId')) {
+        ElMessage.error('没有找到上一个标签页')
+        return
+    }
+    chrome.runtime.sendMessage(
+        import.meta.env.VITE_CHROME_PLUGIN_ID,
+        { action: 'backTab', tabId: GM_getValue('aiBackTabId'), windowId: GM_getValue('aiBackWindowId') },
+        response => {},
+    )
+}
 // 从小红书跳转回文章详情页
 async function go_back_tab_from_xhs() {
     if (!GM_getValue('xhsBackTabId') || !GM_getValue('xhsBackWindowId')) {
@@ -824,6 +836,7 @@ onMounted(() => {
         </template>
         <template v-else-if="now_page === 'doubao'">
             <el-button type="primary" @click="copy_doubao()">复制最后一条文案</el-button>
+            <el-button type="success" @click="go_back_tab_from_doubao_no_copy()">返回主页文章</el-button>
             <el-button type="success" @click="copy_doubao_and_back()">复制文案并跳转</el-button>
         </template>
     </div>
